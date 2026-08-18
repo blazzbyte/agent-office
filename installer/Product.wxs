@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Agent Office — per-user MSI (WiX v3).
+
+  Per-user MSI via WiX, HKCU add-in registration, no admin rights required.
+
+  - Drops the add-in binaries + .vsto deployment manifest + WebView2 SDK
+    assemblies (+ per-arch native loaders) + the bundled chat UI under
+    %LOCALAPPDATA%\AgentOffice (the same folder that holds settings.json,
+    host.log and the WebView2 profile — the MSI only owns the files it
+    installs; RemoveFolder only removes EMPTY folders, so user data survives).
+  - Registers HKCU\Software\Microsoft\Office\Excel\Addins\AgentOffice
+    (LoadBehavior=3, Manifest=...vsto|vstolocal).
+  - Agent Office is a NEW product: fresh UpgradeCode, fresh component GUIDs and
+    its own add-in identity — it does NOT upgrade, replace or touch any other
+    add-in install (they coexist side by side).
+  - Launch conditions: VSTO Runtime v4 + WebView2 Evergreen Runtime
+    (machine-wide or per-user registration both accepted).
+  - Signing: deferred until a code-signing cert is available.
+
+  Build: installer\Build-Msi.ps1
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="Agent Office"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="Blazzbyte"
+           UpgradeCode="8C45F9FB-071B-4656-8078-D64985B95096">
+
+    <Package InstallerVersion="200"
+             Compressed="yes"
+             InstallScope="perUser"
+             InstallPrivileges="limited"
+             Description="Native VSTO add-in for Agent Office (embedded chat UI + in-proc agent + COM executor)"
+             Comments="Unsigned dev build - sign before public distribution." />
+
+    <!-- AllowSameVersionUpgrades: dev/re-release builds reuse the same
+         ProductVersion — without this, FindRelatedProducts ignores the
+         installed same-version product and the install becomes a messy
+         side-by-side instead of a clean replace. (ICE61 suppressed in
+         Build-Msi.ps1 for exactly this.) -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of Agent Office is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Add/Remove Programs icon -->
+    <Icon Id="ProductIcon" SourceFile="$(var.IconSource)" />
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+
+    <Feature Id="Main" Title="Agent Office" Level="1">
+      <ComponentRef Id="MainDll" />
+      <ComponentRef Id="DeploymentManifest" />
+      <ComponentRef Id="VstoManifest" />
+      <ComponentRef Id="VstoCommonUtilities" />
+      <ComponentRef Id="VstoExcelUtilities" />
+      <ComponentRef Id="WebView2Core" />
+      <ComponentRef Id="WebView2WinForms" />
+      <ComponentRef Id="WebView2LoaderX64" />
+      <ComponentRef Id="WebView2LoaderX86" />
+      <!-- Bundled chat UI (heat-harvested from ui/dist). -->
+      <ComponentGroupRef Id="UIComponents" />
+    </Feature>
+
+    <!-- VSTO Runtime v4 presence. This 32-bit package's registry search is
+         redirected to WOW6432Node — exactly where the runtime registers. -->
+    <Property Id="VSTOR_VERSION">
+      <RegistrySearch Id="VstoRuntimeSearch"
+                      Root="HKLM"
+                      Key="SOFTWARE\Microsoft\VSTO Runtime Setup\v4R"
+                      Name="Version"
+                      Type="raw" />
+    </Property>
+    <Condition Message="Agent Office requires the Visual Studio Tools for Office Runtime (VSTO Runtime v4). Install it from https://www.microsoft.com/en-us/download/details.aspx?id=105522 and run this installer again.">
+      <![CDATA[Installed OR VSTOR_VERSION]]>
+    </Condition>
+
+    <!-- WebView2 Evergreen Runtime presence — machine-wide (HKLM, redirected
+         to WOW6432Node for this 32-bit package) or per-user (HKCU). -->
+    <Property Id="WV2RT_MACHINE">
+      <RegistrySearch Id="WebView2MachineSearch"
+                      Root="HKLM"
+                      Key="SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+                      Name="pv"
+                      Type="raw" />
+    </Property>
+    <Property Id="WV2RT_USER">
+      <RegistrySearch Id="WebView2UserSearch"
+                      Root="HKCU"
+                      Key="SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+                      Name="pv"
+                      Type="raw" />
+    </Property>
+    <Condition Message="Agent Office requires the Microsoft Edge WebView2 Runtime. Install the Evergreen Bootstrapper from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and run this installer again.">
+      <![CDATA[Installed OR WV2RT_MACHINE OR WV2RT_USER]]>
+    </Condition>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="INSTALLFOLDER" Name="AgentOffice">
+          <Directory Id="UIFolder" Name="ui" />
+          <Directory Id="RuntimesFolder" Name="runtimes">
+            <Directory Id="WinX64Folder" Name="win-x64">
+              <Directory Id="WinX64NativeFolder" Name="native" />
+            </Directory>
+            <Directory Id="WinX86Folder" Name="win-x86">
+              <Directory Id="WinX86NativeFolder" Name="native" />
+            </Directory>
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <!-- Per-user components: HKCU registry marker as KeyPath (ICE38). -->
+      <Component Id="MainDll" Guid="E8B888D9-C841-407B-939D-FD76A2FFC4DD">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="MainDllInstalled" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="MainDllFile" Source="$(var.SourceDir)\AgentOffice.dll" />
+      </Component>
+
+      <Component Id="DeploymentManifest" Guid="EE971B3D-0BD0-4199-AD75-D1541D64B9A5">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="DeploymentManifestInstalled" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="DeploymentManifestFile" Source="$(var.SourceDir)\AgentOffice.dll.manifest" />
+      </Component>
+
+      <Component Id="VstoManifest" Guid="55F39C3A-0106-4FB1-A89D-A728D4024218">
+        <File Id="VstoFile" Source="$(var.SourceDir)\AgentOffice.vsto" />
+        <!-- Folder cleanup rows for ICE64 (RemoveFolder only removes EMPTY
+             folders — settings.json, host.log, the WebView2 profile and any
+             other Agent Office data survive). -->
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <!-- Excel add-in registration — same key the dev build uses, pointing
+             at the installed copy instead of the build output. -->
+        <RegistryKey Root="HKCU" Key="Software\Microsoft\Office\Excel\Addins\AgentOffice">
+          <RegistryValue Name="FriendlyName" Value="Agent Office" Type="string" />
+          <RegistryValue Name="Description"
+                         Value="Native add-in for Agent Office: embedded chat UI, in-proc LLM agent and in-process COM executor."
+                         Type="string" />
+          <RegistryValue Name="LoadBehavior" Value="3" Type="integer" />
+          <RegistryValue Name="Manifest"
+                         Value="file:///[INSTALLFOLDER]AgentOffice.vsto|vstolocal"
+                         Type="string"
+                         KeyPath="yes" />
+        </RegistryKey>
+        <!-- Multi-host: the same assembly loads in Word and PowerPoint with
+             full toolsets; the registry keys are identical except for the
+             Office application path. -->
+        <RegistryKey Root="HKCU" Key="Software\Microsoft\Office\Word\Addins\AgentOffice">
+          <RegistryValue Name="FriendlyName" Value="Agent Office" Type="string" />
+          <RegistryValue Name="Description"
+                         Value="Native add-in for Agent Office: embedded chat UI, in-proc LLM agent and in-process COM executor."
+                         Type="string" />
+          <RegistryValue Name="LoadBehavior" Value="3" Type="integer" />
+          <RegistryValue Name="Manifest"
+                         Value="file:///[INSTALLFOLDER]AgentOffice.vsto|vstolocal"
+                         Type="string" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Microsoft\Office\PowerPoint\Addins\AgentOffice">
+          <RegistryValue Name="FriendlyName" Value="Agent Office" Type="string" />
+          <RegistryValue Name="Description"
+                         Value="Native add-in for Agent Office: embedded chat UI, in-proc LLM agent and in-process COM executor."
+                         Type="string" />
+          <RegistryValue Name="LoadBehavior" Value="3" Type="integer" />
+          <RegistryValue Name="Manifest"
+                         Value="file:///[INSTALLFOLDER]AgentOffice.vsto|vstolocal"
+                         Type="string" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="VstoCommonUtilities" Guid="0EF92D83-E2A1-463A-ABF0-775AFDD6BD5E">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="VstoCommonUtilitiesInstalled" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="VstoCommonUtilitiesFile" Source="$(var.SourceDir)\Microsoft.Office.Tools.Common.v4.0.Utilities.dll" />
+      </Component>
+
+      <Component Id="VstoExcelUtilities" Guid="3A83C486-0E0A-46BC-86D2-EFF8184638D6">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="VstoExcelUtilitiesInstalled" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="VstoExcelUtilitiesFile" Source="$(var.SourceDir)\Microsoft.Office.Tools.Excel.v4.0.Utilities.dll" />
+      </Component>
+
+      <Component Id="WebView2Core" Guid="E4A3EC2C-506A-4AFA-A5CC-BF4E883A162B">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="WebView2CoreInstalled" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="WebView2CoreFile" Source="$(var.SourceDir)\Microsoft.Web.WebView2.Core.dll" />
+      </Component>
+
+      <Component Id="WebView2WinForms" Guid="4D9D68E2-6CAA-47D5-A7DD-D610895C83A4">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="WebView2WinFormsInstalled" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="WebView2WinFormsFile" Source="$(var.SourceDir)\Microsoft.Web.WebView2.WinForms.dll" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="WinX64NativeFolder">
+      <Component Id="WebView2LoaderX64" Guid="2D38040D-0F2E-4DBD-ABB7-5CD8C40AEA88">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="WebView2LoaderX64Installed" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="WebView2LoaderX64File" Source="$(var.SourceDir)\runtimes\win-x64\native\WebView2Loader.dll" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="WinX86NativeFolder">
+      <Component Id="WebView2LoaderX86" Guid="1A99BEEB-C1FB-42B7-A205-EBFB8AF3EA6F">
+        <RegistryValue Root="HKCU" Key="Software\AgentOffice" Name="WebView2LoaderX86Installed" Value="1" Type="integer" KeyPath="yes" />
+        <File Id="WebView2LoaderX86File" Source="$(var.SourceDir)\runtimes\win-x86\native\WebView2Loader.dll" />
+      </Component>
+    </DirectoryRef>
+  </Product>
+</Wix>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Agent Office ribbon: a single toggle button that shows/hides the chat taskpane.
+  The pressed state mirrors the pane's actual visibility (invalidated on every
+  VisibleChanged) and the choice is persisted in settings.json (paneVisible),
+  so the panel reopens (or stays hidden) exactly as the user left it.
+-->
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="OnLoad">
+  <ribbon>
+    <tabs>
+      <tab id="AgentOfficeTab" label="Agent Office">
+        <group id="AgentOfficeGroup" label="Chat">
+          <toggleButton id="ChatPaneToggle"
+                        label="Agent Office"
+                        size="large"
+                        getImage="GetImage"
+                        getPressed="GetPanePressed"
+                        onAction="OnTogglePane"
+                        screentip="Show or hide the Agent Office chat panel"
+                        supertip="The panel remembers whether it was open or closed the next time Excel starts." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>

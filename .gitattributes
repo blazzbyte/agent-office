@@ -1,0 +1,23 @@
+# Normalize line endings on checkout; let Git handle text files.
+* text=auto
+
+# Explicit text files
+*.cs       text eol=crlf
+*.csproj   text eol=crlf
+*.sln      text eol=crlf
+*.wxs      text eol=crlf
+*.ps1      text eol=crlf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.json     text eol=lf
+*.html     text eol=lf
+*.css      text eol=lf
+*.md       text eol=lf
+
+# Binary files
+*.png    binary
+*.ico    binary
+*.msi    binary
+*.zip    binary
+*.woff2  binary
+*.pfx    binary

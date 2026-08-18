@@ -1,0 +1,72 @@
+# ===================================================================
+# Agent Office - .gitignore
+# ===================================================================
+
+# ---- Node / Web UI (ui/) ----
+node_modules/
+dist/
+dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.local
+.env
+.env.local
+.env.*.local
+
+# ---- .NET / VSTO Add-in ----
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+[Bb]uild/
+TestResults/
+*.user
+*.suo
+*.userprefs
+*.pidb
+*.version
+*.tmp
+*.temp
+
+# ---- IDEs & Editors ----
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# ---- VSTO Signing & Certificates ----
+*.pfx
+*.cer
+*.crt
+*.p12
+
+# ---- SQLite & Runtime Data / Logs ----
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+logs/
+*.log
+
+# ---- WiX Toolchain & Installer Outputs ----
+tools/
+installer/out/
+*.msi
+*.wixobj
+*.wixpdb
+
+# ---- OS Generated ----
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.sw?
+
+# ---- Private / Internal Planning Docs ----
+docs/plan/
