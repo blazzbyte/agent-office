@@ -13,10 +13,22 @@ namespace AgentOffice.Agent
     internal static class ImageGeneration
     {
 /// <summary>Image jobs are slow (local SD especially) — 5 min cap.</summary>
-        private static readonly HttpClient Client = new HttpClient
+        private static readonly HttpClient Client = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression =
+                System.Net.DecompressionMethods.GZip |
+                System.Net.DecompressionMethods.Deflate,
+        })
         {
             Timeout = TimeSpan.FromMinutes(5),
         };
+
+        static ImageGeneration()
+        {
+            Client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "AgentOffice/" + Bridge.Protocol.BridgeVersion);
+            Client.DefaultRequestHeaders.TryAddWithoutValidation("HTTP-Referer", "https://github.com/blazzbyte/agent-office");
+            Client.DefaultRequestHeaders.TryAddWithoutValidation("X-Title", "Agent Office");
+        }
 
         private static readonly JavaScriptSerializer Json = new JavaScriptSerializer
         {

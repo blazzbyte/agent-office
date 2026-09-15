@@ -683,9 +683,11 @@ namespace AgentOffice.Agent
             var wire = new ArrayList();
             foreach (var call in calls)
             {
-                wire.Add(new Dictionary<string, object>
+                var dict = new Dictionary<string, object>
                 {
-                    ["id"] = call.Id,
+                    ["id"] = string.IsNullOrEmpty(call.Id)
+                        ? "call_" + Guid.NewGuid().ToString("N").Substring(0, 9)
+                        : call.Id,
                     ["type"] = "function",
                     ["function"] = new Dictionary<string, object>
                     {
@@ -693,7 +695,18 @@ namespace AgentOffice.Agent
                         ["arguments"] = string.IsNullOrEmpty(call.Arguments)
                             ? "{}" : call.Arguments,
                     },
-                });
+                };
+                if (call.ExtraFields != null)
+                {
+                    foreach (var kvp in call.ExtraFields)
+                    {
+                        if (kvp.Key != "id" && kvp.Key != "type" && kvp.Key != "function" && kvp.Key != "index")
+                        {
+                            dict[kvp.Key] = kvp.Value;
+                        }
+                    }
+                }
+                wire.Add(dict);
             }
             return wire;
         }

@@ -34,6 +34,21 @@ namespace AgentOffice
         {
             try
             {
+                // Ensure modern TLS protocols (TLS 1.2 / TLS 1.3) are enabled for all outbound HTTPS calls.
+                System.Net.ServicePointManager.SecurityProtocol |=
+                    System.Net.SecurityProtocolType.Tls12 |
+                    System.Net.SecurityProtocolType.Tls11 |
+                    System.Net.SecurityProtocolType.Tls |
+                    (System.Net.SecurityProtocolType)12288;
+                System.Net.ServicePointManager.DefaultConnectionLimit = 64;
+            }
+            catch (Exception ex)
+            {
+                Bridge.Log.Error("Failed to initialize ServicePointManager security protocols", ex);
+            }
+
+            try
+            {
                 _agent = new Agent.AgentHost();
                 _agent.Start();
             }

@@ -451,7 +451,11 @@ namespace AgentOffice.Agent
                     System.Net.DecompressionMethods.GZip |
                     System.Net.DecompressionMethods.Deflate,
             };
-            return new HttpClient(handler) { Timeout = FetchTimeout };
+            var client = new HttpClient(handler) { Timeout = FetchTimeout };
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "AgentOffice/" + Bridge.Protocol.BridgeVersion);
+            client.DefaultRequestHeaders.TryAddWithoutValidation("HTTP-Referer", "https://github.com/blazzbyte/agent-office");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Title", "Agent Office");
+            return client;
         }
 
         private static void RefreshCatalog()

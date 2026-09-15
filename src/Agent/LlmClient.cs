@@ -38,6 +38,8 @@ namespace AgentOffice.Agent
         public string Arguments;
 /// <summary>Stream index — defines the model's intended call order.</summary>
         public int Index;
+/// <summary>Provider-specific metadata (such as Google Gemini's thought_signature / extra_content).</summary>
+        public Dictionary<string, object> ExtraFields;
     }
 
 /// <summary>Token accounting from the provider's final usage frame.</summary>
@@ -103,12 +105,30 @@ namespace AgentOffice.Agent
 /// <summary>OpenAI-compatible streaming chat client — the single provider flavor Agent Office supports.</summary>
     internal sealed class LlmClient
     {
-        private static readonly HttpClient Client = new HttpClient
+        private static readonly HttpClient Client = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression =
+                System.Net.DecompressionMethods.GZip |
+                System.Net.DecompressionMethods.Deflate,
+        })
         {
             // Chat streams are long-lived; per-request cancellation is the
             // caller's concern (page aborts, add-in shutdown).
             Timeout = Timeout.InfiniteTimeSpan,
         };
+
+        static LlmClient()
+        {
+            try
+            {
+                System.Net.ServicePointManager.SecurityProtocol |=
+                    System.Net.SecurityProtocolType.Tls12 |
+                    System.Net.SecurityProtocolType.Tls11 |
+                    System.Net.SecurityProtocolType.Tls |
+                    (System.Net.SecurityProtocolType)12288;
+            }
+            catch { }
+        }
 
         private static readonly JavaScriptSerializer Json = new JavaScriptSerializer
         {
@@ -152,6 +172,11 @@ namespace AgentOffice.Agent
                 if (!string.IsNullOrEmpty(apiKey))
                     request.Headers.Authorization =
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+                request.Headers.TryAddWithoutValidation("User-Agent", "AgentOffice/" + Bridge.Protocol.BridgeVersion);
+                request.Headers.TryAddWithoutValidation("HTTP-Referer", "https://github.com/blazzbyte/agent-office");
+                request.Headers.TryAddWithoutValidation("X-Title", "Agent Office");
+
                 request.Content = new StringContent(
                     Json.Serialize(requestBody), Encoding.UTF8, "application/json");
 
@@ -270,9 +295,13 @@ namespace AgentOffice.Agent
                     ? toolCallsRaw as ArrayList : null;
                 if (toolCalls != null)
                 {
-                    foreach (var entry in toolCalls)
+                    for (var i = 0; i < toolCalls.Count; i++)
                     {
-                        AccumulateToolCall(entry as Dictionary<string, object>, toolBuilders);
+                        var entry = toolCalls[i] as Dictionary<string, object>;
+                        if (entry != null)
+                        {
+                            AccumulateToolCall(entry, i, toolCalls.Count, delta, choice, toolBuilders);
+                        }
                     }
                 }
 
@@ -297,6 +326,7 @@ namespace AgentOffice.Agent
             public string Id;
             public string Name;
             public readonly StringBuilder Arguments = new StringBuilder();
+            public readonly Dictionary<string, object> ExtraFields = new Dictionary<string, object>();
 
             public LlmToolCall Build(int index)
             {
@@ -306,19 +336,70 @@ namespace AgentOffice.Agent
                     Name = Name ?? string.Empty,
                     Arguments = Arguments.Length > 0 ? Arguments.ToString() : "{}",
                     Index = index,
+                    ExtraFields = ExtraFields.Count > 0 ? ExtraFields : null,
                 };
             }
         }
 
         private static void AccumulateToolCall(
             Dictionary<string, object> entry,
+            int arrayIndex,
+            int arrayCount,
+            Dictionary<string, object> delta,
+            Dictionary<string, object> choice,
             Dictionary<int, ToolCallBuilder> builders)
         {
             if (entry == null) return;
-            var index = 0;
+
+            int? explicitIndex = null;
             object indexRaw;
-            if (entry.TryGetValue("index", out indexRaw) && indexRaw is int)
-                index = (int)indexRaw;
+            if (entry.TryGetValue("index", out indexRaw) && indexRaw != null)
+            {
+                if (indexRaw is int) explicitIndex = (int)indexRaw;
+                else if (int.TryParse(indexRaw.ToString(), out var parsed)) explicitIndex = parsed;
+            }
+
+            int index;
+            if (explicitIndex.HasValue)
+            {
+                index = explicitIndex.Value;
+            }
+            else
+            {
+                // Non-standard providers (e.g. Gemini OpenAI compatibility endpoint) might omit 'index'.
+                string id = null;
+                object idRaw;
+                if (entry.TryGetValue("id", out idRaw) && idRaw is string && !string.IsNullOrEmpty((string)idRaw))
+                {
+                    id = (string)idRaw;
+                }
+
+                if (id != null)
+                {
+                    int foundIdx = -1;
+                    foreach (var kvp in builders)
+                    {
+                        if (kvp.Value.Id == id)
+                        {
+                            foundIdx = kvp.Key;
+                            break;
+                        }
+                    }
+                    index = (foundIdx >= 0) ? foundIdx : builders.Count;
+                }
+                else if (arrayCount > 1 && arrayIndex < builders.Count)
+                {
+                    index = arrayIndex;
+                }
+                else if (builders.Count > 0)
+                {
+                    index = builders.Count - 1;
+                }
+                else
+                {
+                    index = 0;
+                }
+            }
 
             ToolCallBuilder builder;
             if (!builders.TryGetValue(index, out builder))
@@ -327,21 +408,56 @@ namespace AgentOffice.Agent
                 builders[index] = builder;
             }
 
-            object idRaw;
-            if (entry.TryGetValue("id", out idRaw) && idRaw is string)
-                builder.Id = (string)idRaw;
+            object newIdRaw;
+            if (entry.TryGetValue("id", out newIdRaw) && newIdRaw is string && !string.IsNullOrEmpty((string)newIdRaw))
+                builder.Id = (string)newIdRaw;
+
+            // Preserve provider-specific extra fields (e.g. extra_content, thought_signature, google)
+            foreach (var kvp in entry)
+            {
+                if (kvp.Key == "index" || kvp.Key == "id" || kvp.Key == "type" || kvp.Key == "function")
+                    continue;
+                builder.ExtraFields[kvp.Key] = kvp.Value;
+            }
 
             object fnRaw;
             var fn = entry.TryGetValue("function", out fnRaw)
                 ? fnRaw as Dictionary<string, object> : null;
-            if (fn == null) return;
+            if (fn != null)
+            {
+                object nameRaw;
+                if (fn.TryGetValue("name", out nameRaw) && nameRaw is string)
+                    builder.Name = (string)nameRaw;
+                object argsRaw;
+                if (fn.TryGetValue("arguments", out argsRaw) && argsRaw is string)
+                    builder.Arguments.Append((string)argsRaw);
 
-            object nameRaw;
-            if (fn.TryGetValue("name", out nameRaw) && nameRaw is string)
-                builder.Name = (string)nameRaw;
-            object argsRaw;
-            if (fn.TryGetValue("arguments", out argsRaw) && argsRaw is string)
-                builder.Arguments.Append((string)argsRaw);
+                foreach (var kvp in fn)
+                {
+                    if (kvp.Key == "name" || kvp.Key == "arguments")
+                        continue;
+                    if (!builder.ExtraFields.ContainsKey(kvp.Key))
+                        builder.ExtraFields[kvp.Key] = kvp.Value;
+                }
+            }
+
+            // Fallback for delta/choice-level extra_content or thought_signature
+            if (!builder.ExtraFields.ContainsKey("extra_content"))
+            {
+                object extra;
+                if (delta != null && delta.TryGetValue("extra_content", out extra) && extra != null)
+                    builder.ExtraFields["extra_content"] = extra;
+                else if (choice != null && choice.TryGetValue("extra_content", out extra) && extra != null)
+                    builder.ExtraFields["extra_content"] = extra;
+            }
+            if (!builder.ExtraFields.ContainsKey("thought_signature"))
+            {
+                object thought;
+                if (delta != null && delta.TryGetValue("thought_signature", out thought) && thought != null)
+                    builder.ExtraFields["thought_signature"] = thought;
+                else if (choice != null && choice.TryGetValue("thought_signature", out thought) && thought != null)
+                    builder.ExtraFields["thought_signature"] = thought;
+            }
         }
 
 /// <summary>Collect generated images from a streaming delta.</summary>
