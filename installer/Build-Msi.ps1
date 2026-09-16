@@ -29,16 +29,16 @@ foreach ($f in @("AgentOffice.dll", "AgentOffice.dll.manifest", "AgentOffice.vst
                  "Microsoft.Office.Tools.Common.v4.0.Utilities.dll", "Microsoft.Office.Tools.Excel.v4.0.Utilities.dll",
                  "Microsoft.Web.WebView2.Core.dll", "Microsoft.Web.WebView2.WinForms.dll")) {
   if (-not (Test-Path (Join-Path $sourceDir $f))) {
-    throw "Missing '$f' in $sourceDir — build the add-in first (MSBuild /p:Configuration=$Configuration)."
+    throw "Missing '$f' in $sourceDir - build the add-in first (MSBuild /p:Configuration=$Configuration)."
   }
 }
 foreach ($f in @("runtimes\win-x64\native\WebView2Loader.dll", "runtimes\win-x86\native\WebView2Loader.dll")) {
   if (-not (Test-Path (Join-Path $sourceDir $f))) {
-    throw "Missing '$f' in $sourceDir — build the add-in first (MSBuild /p:Configuration=$Configuration)."
+    throw "Missing '$f' in $sourceDir - build the add-in first (MSBuild /p:Configuration=$Configuration)."
   }
 }
 if (-not (Test-Path (Join-Path $uiDir "index.html"))) {
-  throw "Missing chat UI at $uiDir — build the web UI first (pnpm build in ui)."
+  throw "Missing chat UI at $uiDir - build the web UI first (pnpm build in ui)."
 }
 
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
