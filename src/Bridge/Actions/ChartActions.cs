@@ -6,7 +6,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AgentOffice.Bridge
 {
-/// <summary>Phase 2 action (see docs/plan/VSTO_BRIDGE_PLAN.md §9) — advanced chart options beyond Office.js.</summary>
+/// <summary>Advanced chart actions beyond Office.js.</summary>
     internal static class ChartActions
     {
         public static Dictionary<string, object> ConfigureChartPro(Excel.Application app, BridgeRequest req)

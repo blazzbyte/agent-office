@@ -6,7 +6,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AgentOffice.Bridge
 {
-/// <summary>Phase 2 export actions (see docs/plan/VSTO_BRIDGE_PLAN.md §9): export_pdf { path?, sheet?</summary>
+/// <summary>Export actions: export_pdf { path?, sheet? }</summary>
     internal static class ExportActions
     {
         public static Dictionary<string, object> ExportPdf(Excel.Application app, BridgeRequest req)

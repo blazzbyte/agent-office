@@ -5,7 +5,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AgentOffice.Bridge
 {
-/// <summary>Phase 2 actions (see docs/plan/VSTO_BRIDGE_PLAN.md §9) — granular protection.</summary>
+/// <summary>Granular protection actions.</summary>
     internal static class ProtectionActions
     {
         public static Dictionary<string, object> ProtectSheet(Excel.Application app, BridgeRequest req)

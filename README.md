@@ -19,10 +19,6 @@ no local servers. You point it at any **OpenAI-compatible** LLM endpoint
 (API key + model) and everything else stays on your machine.
 **One MSI installs everything.**
 
-> **Status:** the in-proc agent (sessions, native tool calling, context
-> compaction, local storage) is implemented. Remaining release work is tracked
-> in [docs/plan/ROADMAP.md](docs/plan/ROADMAP.md).
-
 ## Capabilities
 
 The agent exposes actions tailored to the active Office app:
@@ -91,8 +87,6 @@ The **Agent Office** taskpane opens on the right.
 
 - **Code signing** (removes the VSTO trust prompt + SmartScreen).
 - **Auto-update** for the MSI.
-
-See [docs/plan/ROADMAP.md](docs/plan/ROADMAP.md) for details.
 
 ## Contributing
 

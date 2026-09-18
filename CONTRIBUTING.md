@@ -15,9 +15,7 @@ agent-office/                      (this repo = the product)
 ├─ installer/                     WiX v3 MSI packaging (Build-Msi.ps1)
 ├─ libs/webview2/                 Vendored WebView2 SDK (no NuGet)
 ├─ scripts/                       setup-dev.ps1, New-DevCertificate.ps1
-├─ docs/                          ARCHITECTURE.md (+ plan/ROADMAP.md)
-│                                
-└─ tools/wix314/                  Repo-local WiX v3 toolchain (gitignored)
+└─ docs/                          ARCHITECTURE.md
 ```
 
 ## Architecture in one paragraph

@@ -6,7 +6,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AgentOffice.Bridge
 {
-/// <summary>Phase 2 analysis actions (see docs/plan/VSTO_BRIDGE_PLAN.md §9).</summary>
+/// <summary>Excel analysis actions: inspect formulas, trace precedents/dependents, data profiling.</summary>
     internal static class AnalysisActions
     {
         // ------------------------------------------------------------------

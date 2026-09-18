@@ -5,7 +5,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AgentOffice.Bridge
 {
-/// <summary>Phase 2 action (see docs/plan/VSTO_BRIDGE_PLAN.md §9): add_power_query { name, formula, loadTo?, destSheet?, destCell?</summary>
+/// <summary>Power Query action: add_power_query { name, formula, loadTo?, destSheet?, destCell? }</summary>
     internal static class PowerQueryActions
     {
         public static Dictionary<string, object> AddPowerQuery(Excel.Application app, BridgeRequest req)

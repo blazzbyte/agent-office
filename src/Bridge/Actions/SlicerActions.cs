@@ -5,7 +5,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AgentOffice.Bridge
 {
-/// <summary>Phase 2 action (see docs/plan/VSTO_BRIDGE_PLAN.md §9).</summary>
+/// <summary>Excel slicer actions.</summary>
     internal static class SlicerActions
     {
         public static Dictionary<string, object> CreateSlicer(Excel.Application app, BridgeRequest req)

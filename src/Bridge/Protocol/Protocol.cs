@@ -4,7 +4,7 @@ using System.Web.Script.Serialization;
 
 namespace AgentOffice.Bridge
 {
-/// <summary>Wire protocol shared with the web add-in (see docs/plan/VSTO_BRIDGE_PLAN.md §6).</summary>
+/// <summary>Wire protocol shared with the web add-in.</summary>
     internal static class Protocol
     {
         public const string BridgeName = "agent-office";
