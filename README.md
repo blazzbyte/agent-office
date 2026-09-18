@@ -59,7 +59,7 @@ Everything installs per-user — **no admin rights needed**.
 
 ### 1. Install the add-in
 
-Run `AgentOffice-x.y.z.msi` from [Releases](../../releases). On the **first Office
+Run `AgentOffice-x.y.z.msi` from [Releases](https://github.com/blazzbyte/agent-office/releases). On the **first Office
 start** afterwards you'll see *"Microsoft Office Customization Installer —
 Publisher cannot be verified"* → click **Install**. This prompt is expected for
 unsigned builds (see [Roadmap](#roadmap)); it appears only once.
