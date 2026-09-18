@@ -66,23 +66,19 @@ unsigned builds (see [Roadmap](#roadmap)); it appears only once.
 
 ### 2. Open Excel, Word or PowerPoint
 
-The **Agent Office** taskpane opens on the right — that's the whole UI.
+The **Agent Office** taskpane opens on the right.
 
 ### 3. Configure the model
 
-1. In the taskpane header, click the **gear icon** (Connection settings).
-2. Pick a provider preset or enter the base URL manually.
-3. Enter your **API key** and **model**.
-4. **Save & reconnect** — the gear icon shows a green dot when connected.
+1. Click the **settings icon** in the taskpane header.
+2. Select your provider preset (or enter a custom base URL).
+3. Enter your **API key** and **model**, then save.
 
-### 4. Verify
+### 4. Try it out
 
-- The settings gear shows a green dot when connected and the lightning icon is
-  lit (the action executor is built in — hover for the action count).
-- Try:
-  - Excel: *"lee A1:B5"*, *"inserta la ecuación de Colebrook en B2"*.
-  - Word: *"lee el primer párrafo"*, *"pon el título en negrita"*.
-  - PowerPoint: *"lista las diapositivas"*, *"agrega un título en la slide 1"*.
+- Excel: *"read A1:B5"*, *"create a sales table with a column chart"*.
+- Word: *"read the first paragraph"*, *"make the title bold"*.
+- PowerPoint: *"add a summary slide with three key takeaways"*.
 
 ## Troubleshooting
 
