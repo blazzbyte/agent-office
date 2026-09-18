@@ -5,7 +5,7 @@ All notable changes to **Agent Office** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [Semantic Versioning](https://semver.org/).
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-09-18
 
 ### Added
 
@@ -56,6 +56,12 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Google Gemini tool calling and reasoning support**: resolved parameter
+  concatenation when streaming deltas omit `index`, and preserved
+  `thought_signature` / `extra_content` required by Gemini 2.5 / 3.x reasoning models.
+- **OpenRouter & Cloudflare TLS handshake**: forced modern TLS 1.2/1.3 protocols
+  in the .NET host and added standard `User-Agent`, `HTTP-Referer`, and `X-Title`
+  headers to prevent connection resets and 502 errors when fetching the model catalog.
 - **Word/PowerPoint load failure on non-Excel hosts**: the VSTO-generated
   designer requested Excel-typed host items that the runtime could not supply
   outside Excel. The designer is now host-agnostic: the constructor takes the
