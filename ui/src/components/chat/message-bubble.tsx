@@ -223,7 +223,7 @@ const ReasoningAccordion = memo(function ReasoningAccordion({
   )
 
   if (standalone) {
-    if (flat) return <div className="animate-msg-in min-w-0">{content}</div>
+    if (flat) return <div className="animate-msg-in min-w-0 px-3">{content}</div>
     return (
       <div className="animate-msg-in grid w-full grid-cols-[2rem_1fr] items-start gap-2">
         <div aria-hidden="true" />
@@ -267,10 +267,7 @@ const UserBubble = memo(function UserBubble({
         className={cn(
           "break-words text-[0.8125rem] leading-relaxed",
           flat
-            ? // Full-bleed band: same background as the input field, edge to
-              // edge (breaks out of the list's p-3 padding), no rounded
-              // corners, no borders — the bg alone marks the user's turn.
-              "-mx-3 w-auto bg-muted px-3 py-2 text-foreground"
+            ? "w-full bg-muted px-3 py-2 text-foreground"
             : "max-w-[min(85%,340px)] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-primary-foreground shadow-sm",
         )}
       >
@@ -388,7 +385,7 @@ const AssistantBubble = memo(function AssistantBubble({
             className={cn(
               "group relative min-w-0 text-[0.8125rem] leading-relaxed",
               flat
-                ? "w-full py-0.5 text-foreground"
+                ? "w-full px-3 py-0.5 text-foreground"
                 : "max-w-[min(85%,340px)] rounded-2xl rounded-bl-md border border-border bg-card p-3 text-card-foreground shadow-sm",
             )}
           >
@@ -423,7 +420,7 @@ const AssistantBubble = memo(function AssistantBubble({
       )}
       {showBubble && (relTime || runMetaLine) ? (
         !msg.streaming && (
-          <div className={cn("flex items-center gap-1.5 text-[0.5625rem] text-muted-foreground", flat ? "ml-1" : "ml-8")}>
+          <div className={cn("flex items-center gap-1.5 text-[0.5625rem] text-muted-foreground", flat ? "ml-3" : "ml-8")}>
             {relTime && (
               <time dateTime={new Date(msg.timestamp).toISOString()}>{relTime}</time>
             )}
@@ -502,7 +499,7 @@ const ToolBubble = memo(function ToolBubble({
     </CollapsibleToolCard>
   )
 
-  if (flat) return <div className="animate-msg-in min-w-0">{card}</div>
+  if (flat) return <div className="animate-msg-in min-w-0 px-3">{card}</div>
   return (
     <div className="animate-msg-in grid w-full grid-cols-[2rem_1fr] items-start gap-2">
       <div aria-hidden="true" />

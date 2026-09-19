@@ -134,7 +134,13 @@ namespace AgentOffice.Agent
                     root["provider"] = provider;
                 }
 
-                if (apiKey != null) provider["apiKey"] = apiKey.Trim();
+                if (apiKey != null)
+                {
+                    var clean = apiKey.Trim();
+                    if (clean.StartsWith("Bearer ", System.StringComparison.OrdinalIgnoreCase))
+                        clean = clean.Substring(7).Trim();
+                    provider["apiKey"] = clean;
+                }
                 if (baseUrl != null) provider["baseUrl"] = baseUrl.Trim();
                 if (model != null) provider["model"] = model.Trim();
                 if (contextWindow.HasValue) provider["contextWindow"] = contextWindow.Value;

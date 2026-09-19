@@ -19,6 +19,10 @@ no local servers. You point it at any **OpenAI-compatible** LLM endpoint
 (API key + model) and everything else stays on your machine.
 **One MSI installs everything.**
 
+<p align="center">
+  <img src=".github/assets/demo.gif" alt="Agent Office in action" width="100%" />
+</p>
+
 ## Capabilities
 
 The agent exposes actions tailored to the active Office app:

@@ -548,6 +548,17 @@ namespace AgentOffice.Agent
             }
         }
 
+        private static string FormatErrorMessage(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return raw;
+            if (raw.IndexOf("Missing Authentication header", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "The provider rejected the request with 'Missing Authentication header'. " +
+                       "Check that your API key is valid for this provider (OpenRouter keys start with 'sk-or-v1-').";
+            }
+            return raw;
+        }
+
 /// <summary>Pull "error.message" out of an OpenAI-shaped error body.</summary>
         private static string ExtractErrorMessage(string body)
         {
@@ -565,14 +576,14 @@ namespace AgentOffice.Agent
                         error.TryGetValue("message", out messageRaw) &&
                         messageRaw is string)
                     {
-                        return (string)messageRaw;
+                        return FormatErrorMessage((string)messageRaw);
                     }
                     object topRaw;
                     if (parsed != null &&
                         parsed.TryGetValue("message", out topRaw) &&
                         topRaw is string)
                     {
-                        return (string)topRaw;
+                        return FormatErrorMessage((string)topRaw);
                     }
                 }
                 catch { /* fall through to generic */ }

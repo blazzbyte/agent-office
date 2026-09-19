@@ -120,7 +120,7 @@ export const MessageList = memo(function MessageList({
   return (
     <div
       className={flat
-        ? "flex min-h-full flex-col gap-4 px-3 pb-2"
+        ? "flex min-h-full flex-col gap-4 pb-2"
         : "flex min-h-full flex-col gap-3 p-3 pb-2"}
       role="log"
       aria-live={isLoading ? "off" : "polite"}
@@ -152,7 +152,7 @@ export const MessageList = memo(function MessageList({
           empty (first delta hasn't arrived yet) */}
       {isLoading && !lastIsAssistant && !toolProgress && (
         flat ? (
-          <div className="animate-msg-in py-1">
+          <div className="animate-msg-in px-3 py-1">
             <TypingIndicator />
           </div>
         ) : (

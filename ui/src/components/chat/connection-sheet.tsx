@@ -349,6 +349,37 @@ export const ConnectionSheet = memo(function ConnectionSheet({
     [models, model],
   )
 
+  const apiKeyWarning = useMemo(() => {
+    const k = apiKey.trim()
+    if (!k) return null
+    if (k.startsWith("sk_test_") || k.startsWith("sk_live_")) {
+      return "This looks like a Stripe API key, not an AI provider key."
+    }
+    if (presetId === "openrouter" && !k.startsWith("sk-or-")) {
+      return "OpenRouter keys typically start with sk-or-v1-."
+    }
+    if (presetId === "gemini" && !k.startsWith("AIzaSy")) {
+      return "Gemini keys typically start with AIzaSy."
+    }
+    if (presetId === "groq" && !k.startsWith("gsk_")) {
+      return "Groq keys typically start with gsk_."
+    }
+    return null
+  }, [apiKey, presetId])
+
+  const apiKeyPlaceholder = useMemo(() => {
+    switch (presetId) {
+      case "openrouter":
+        return "sk-or-v1-…"
+      case "groq":
+        return "gsk_…"
+      case "gemini":
+        return "AIzaSy…"
+      default:
+        return "sk-…"
+    }
+  }, [presetId])
+
   const handleSave = (): void => {
     setSaveError(null)
     void saveProviderSettings({
@@ -415,12 +446,17 @@ export const ConnectionSheet = memo(function ConnectionSheet({
               id="provider-api-key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-…"
+              placeholder={apiKeyPlaceholder}
               spellCheck={false}
               autoComplete="off"
               disabled={isLoading}
               className="h-8 text-xs"
             />
+            {apiKeyWarning && (
+              <p className="text-[0.625rem] text-amber-500 dark:text-amber-400 leading-tight">
+                {apiKeyWarning}
+              </p>
+            )}
           </div>
 
           {/* 3. Base URL — custom provider only */}
