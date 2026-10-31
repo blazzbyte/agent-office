@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace AgentOffice.Agent
 {
@@ -17,7 +20,7 @@ namespace AgentOffice.Agent
 
         public static string ApiKey
         {
-            get { return GetString("apiKey"); }
+            get { return GetSecret("apiKey"); }
         }
 
         public static string BaseUrl
@@ -59,7 +62,7 @@ namespace AgentOffice.Agent
         {
             get
             {
-                var key = GetString("imageApiKey");
+                var key = GetSecret("imageApiKey");
                 return string.IsNullOrEmpty(key) ? ApiKey : key;
             }
         }
@@ -139,7 +142,7 @@ namespace AgentOffice.Agent
                     var clean = apiKey.Trim();
                     if (clean.StartsWith("Bearer ", System.StringComparison.OrdinalIgnoreCase))
                         clean = clean.Substring(7).Trim();
-                    provider["apiKey"] = clean;
+                    provider["apiKey"] = Protect(clean);
                 }
                 if (baseUrl != null) provider["baseUrl"] = baseUrl.Trim();
                 if (model != null) provider["model"] = model.Trim();
@@ -150,7 +153,7 @@ namespace AgentOffice.Agent
                 // null leaves them untouched (partial update).
                 if (imageModel != null) provider["imageModel"] = imageModel.Trim();
                 if (imageBaseUrl != null) provider["imageBaseUrl"] = imageBaseUrl.Trim();
-                if (imageApiKey != null) provider["imageApiKey"] = imageApiKey.Trim();
+                if (imageApiKey != null) provider["imageApiKey"] = Protect(imageApiKey.Trim());
                 if (imageProvider != null) provider["imageProvider"] = imageProvider.Trim();
             });
         }
@@ -168,7 +171,7 @@ namespace AgentOffice.Agent
                 ["maxSteps"] = MaxSteps,
                 ["imageModel"] = ImageModel ?? string.Empty,
                 ["imageBaseUrl"] = GetString("imageBaseUrl") ?? string.Empty,
-                ["imageApiKey"] = GetString("imageApiKey") ?? string.Empty,
+                ["imageApiKey"] = GetSecret("imageApiKey") ?? string.Empty,
                 ["imageProvider"] = ImageGeneration.ResolveProvider(),
                 ["imageConfigured"] = ImageConfigured,
                 ["configured"] = Configured,
@@ -202,6 +205,67 @@ namespace AgentOffice.Agent
                 if (value.Length > 0) return value;
             }
             return null;
+        }
+
+/// <summary>Secret value: DPAPI-decrypted, or a legacy plain-text value (encrypted in place on first read).</summary>
+        private static string GetSecret(string key)
+        {
+            var value = GetString(key);
+            if (value == null) return null;
+            if (value.StartsWith(SecretPrefix, StringComparison.Ordinal))
+                return Unprotect(value.Substring(SecretPrefix.Length));
+            MigrateSecret(key, value);
+            return value;
+        }
+
+        private static void MigrateSecret(string key, string plain)
+        {
+            Taskpane.HostSettings.SaveMutate(root =>
+            {
+                object raw;
+                if (!root.TryGetValue("provider", out raw)) return;
+                var provider = raw as Dictionary<string, object>;
+                if (provider == null || !provider.TryGetValue(key, out raw)) return;
+                // Another process may have migrated or replaced it meanwhile.
+                var current = raw as string;
+                if (current != null && current.Trim() == plain)
+                    provider[key] = Protect(plain);
+            });
+        }
+
+        // ------------------------------------------------------------------
+        // DPAPI (current Windows user): copying settings.json to another
+        // account or machine does not expose the keys.
+        // ------------------------------------------------------------------
+
+        private const string SecretPrefix = "dpapi:";
+
+        private static readonly byte[] Entropy =
+            Encoding.UTF8.GetBytes("AgentOffice.provider.v1");
+
+/// <summary>Encrypt a secret for settings.json; empty stays empty (clears the key).</summary>
+        private static string Protect(string plain)
+        {
+            if (string.IsNullOrEmpty(plain)) return string.Empty;
+            var cipher = ProtectedData.Protect(
+                Encoding.UTF8.GetBytes(plain), Entropy, DataProtectionScope.CurrentUser);
+            return SecretPrefix + Convert.ToBase64String(cipher);
+        }
+
+        private static string Unprotect(string base64)
+        {
+            try
+            {
+                var plain = ProtectedData.Unprotect(
+                    Convert.FromBase64String(base64), Entropy, DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(plain);
+            }
+            catch (Exception ex)
+            {
+                // Different user/machine or corrupted value: treat as unset.
+                Bridge.Log.Error("Could not decrypt stored API key — re-enter it in Settings", ex);
+                return null;
+            }
         }
 
         private static int GetInt(string key, int fallback)

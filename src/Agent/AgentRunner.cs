@@ -539,6 +539,16 @@ namespace AgentOffice.Agent
             var systemPrompt = AgentPrompt.ForSession(_session);
             if (!string.IsNullOrEmpty(systemPrompt))
             {
+                // Read per request (not stored in the session): edits apply
+                // to existing conversations too.
+                var custom = Taskpane.HostSettings.CustomInstructions;
+                if (custom != null)
+                {
+                    systemPrompt +=
+                        "\n\n## Custom instructions\n" +
+                        "Standing instructions configured by the user or their administrator. " +
+                        "Follow them in every response.\n" + custom;
+                }
                 if (!string.IsNullOrEmpty(_appContext))
                 {
                     // Host-owned context block: fresh per user turn, so the

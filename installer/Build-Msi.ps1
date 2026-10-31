@@ -10,7 +10,7 @@
 [CmdletBinding()]
 param(
   [string]$Configuration = "Release",
-  [string]$ProductVersion = "1.0.0"
+  [string]$ProductVersion = "1.1.0"
 )
 $ErrorActionPreference = "Stop"
 

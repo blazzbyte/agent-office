@@ -57,6 +57,36 @@ namespace AgentOffice.Taskpane
             }
         }
 
+/// <summary>Standing instructions appended to every request (settings.json "customInstructions": string or array of strings).</summary>
+        public static string CustomInstructions
+        {
+            get
+            {
+                object raw;
+                var fresh = LoadFresh();
+                if (fresh == null || !fresh.TryGetValue("customInstructions", out raw))
+                    return null;
+
+                var single = raw as string;
+                if (single != null)
+                {
+                    single = single.Trim();
+                    return single.Length > 0 ? single : null;
+                }
+
+                var items = raw as System.Collections.IEnumerable;
+                if (items == null) return null;
+                var lines = new List<string>();
+                foreach (var item in items)
+                {
+                    var text = item as string;
+                    if (text != null && text.Trim().Length > 0)
+                        lines.Add("- " + text.Trim());
+                }
+                return lines.Count > 0 ? string.Join("\n", lines) : null;
+            }
+        }
+
         // ------------------------------------------------------------------
         // Shared file access (also used by Agent.ProviderSettings)
         // ------------------------------------------------------------------

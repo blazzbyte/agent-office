@@ -154,6 +154,8 @@
     <!-- System.Net.Http: inbox in .NET 4.8 — the native gateway client
          (replaces the old Caddy proxy; no NuGet needed). -->
     <Reference Include="System.Net.Http" />
+    <!-- System.Security: DPAPI (ProtectedData) for API keys at rest. -->
+    <Reference Include="System.Security" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />

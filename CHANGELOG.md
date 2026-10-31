@@ -5,6 +5,21 @@ All notable changes to **Agent Office** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-13
+
+### Added
+
+- `customInstructions` in `settings.json` (string or array of strings):
+  standing instructions appended to the system prompt on every request,
+  including existing sessions (#3).
+
+### Security
+
+- API keys (`apiKey`, `imageApiKey`) are now stored encrypted with Windows
+  DPAPI, bound to the current Windows user. Existing plain-text keys are
+  encrypted automatically on first read (#1). Downgrading to 1.0.0 requires
+  re-entering the key.
+
 ## [1.0.0] - 2026-09-18
 
 ### Added

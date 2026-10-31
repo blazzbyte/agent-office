@@ -74,6 +74,19 @@ The **Agent Office** taskpane opens on the right.
 2. Select your provider preset (or enter a custom base URL).
 3. Enter your **API key** and **model**, then save.
 
+The API key is stored encrypted with Windows DPAPI, bound to your Windows user.
+
+**Custom instructions (optional):** add `customInstructions` to
+`%LOCALAPPDATA%\AgentOffice\settings.json` (a string or a list of strings)
+and the agent follows them on every request:
+
+```json
+"customInstructions": [
+  "Always answer in German.",
+  "Preserve the existing document formatting whenever possible."
+]
+```
+
 ### 4. Try it out
 
 - Excel: *"read A1:B5"*, *"create a sales table with a column chart"*.
