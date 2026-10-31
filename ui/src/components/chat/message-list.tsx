@@ -2,6 +2,7 @@ import { memo } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { MessageBubble } from "./message-bubble"
 import { TypingIndicator } from "./typing-indicator"
+import { useT } from "@/i18n"
 import { useUiStore, selectRenderStyle } from "@/store/ui.store"
 import type { AssistantMessage, ChatMessage, RunMeta, ToolMessage } from "@/types/chat"
 import type { ToolProgress } from "@/store/chat.store"
@@ -28,6 +29,7 @@ export const MessageList = memo(function MessageList({
   isLoading,
   toolProgress,
 }: MessageListProps): React.JSX.Element {
+  const t = useT()
   const flat = useUiStore(selectRenderStyle) === "flat"
 
   // Filter out empty assistant streaming bubbles that haven't received
@@ -124,7 +126,7 @@ export const MessageList = memo(function MessageList({
         : "flex min-h-full flex-col gap-3 p-3 pb-2"}
       role="log"
       aria-live={isLoading ? "off" : "polite"}
-      aria-label="Conversation"
+      aria-label={t("messages.conversation")}
       style={{ overflowAnchor: "none" }}
     >
       {renderMessages.map((msg, idx) => (

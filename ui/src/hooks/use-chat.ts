@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react"
+import { translate } from "@/i18n"
 import { logger } from "@/lib/utils/logger"
 import { streamChat } from "@/services/stream.service"
 import { buildWireContent } from "@/lib/attachments"
@@ -186,7 +187,7 @@ export function useChat() {
           },
           onError: ({ message }: SseError) => {
             logger.error("useChat: stream error", { message })
-            const errorLine = `⚠️ An error occurred: ${message}\n\nPlease try again.`
+            const errorLine = translate("system.chatErrorLine", { message })
             const id = currentAssistantIdRef.current
             const msg = id
               ? useChatStore.getState().messages.find((m) => m.id === id)

@@ -18,6 +18,7 @@ import {
 } from "@/lib/attachments"
 import type { MessageAttachment } from "@/types/chat"
 import { logger } from "@/lib/utils/logger"
+import { useT } from "@/i18n"
 
 // ---------------------------------------------------------------------------
 // Imperative handle — lets parent components focus or set text programmatically
@@ -51,6 +52,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
     { isLoading, onSubmit, onAbort, pendingSuggestion, onSuggestionConsumed },
     ref,
   ): React.JSX.Element {
+    const t = useT()
     const [value, setValue] = useState("")
     const [attachments, setAttachments] = useState<MessageAttachment[]>([])
     const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -161,7 +163,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
       <div className="flex flex-col gap-1 p-2.5">
         {/* Pending attachments preview */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-1" aria-label="Attachments">
+          <div className="flex flex-wrap gap-1.5 px-1" aria-label={t("shell.attachments")}>
             {attachments.map((attachment, index) => (
               <span
                 key={`${attachment.name}-${index}`}
@@ -182,7 +184,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                   type="button"
                   className="rounded-full p-0.5 hover:bg-muted hover:text-foreground"
                   onClick={() => removeAttachment(index)}
-                  aria-label={`Remove ${attachment.name}`}
+                  aria-label={t("shell.removeAttachment", { name: attachment.name })}
                 >
                   <X size={11} />
                 </button>
@@ -216,10 +218,10 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              isLoading ? "Agent Office is responding — type your next message…" : "Message Agent Office…"
+              isLoading ? t("shell.inputPlaceholderBusy") : t("shell.inputPlaceholder")
             }
             rows={1}
-            aria-label="Message input"
+            aria-label={t("shell.messageInput")}
             aria-multiline="true"
             className="max-h-[140px] min-h-0 w-full flex-1 resize-none border-0 bg-transparent py-2 text-[0.8125rem] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
           />
@@ -231,11 +233,11 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
               size="icon-sm"
               className="rounded-full text-muted-foreground"
               onClick={() => fileInputRef.current?.click()}
-              aria-label="Attach images or PDF"
+              aria-label={t("shell.attach")}
               title={
                 modelAcceptsMedia
-                  ? "Attach images or PDF (sent per the model's capabilities)"
-                  : "Attach images or PDF — the active model is text-only, attachments may be ignored"
+                  ? t("shell.attachTitle")
+                  : t("shell.attachTitleTextOnly")
               }
             >
               <Paperclip size={14} />
@@ -247,8 +249,8 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                 size="icon-sm"
                 className="rounded-full"
                 onClick={onAbort}
-                aria-label="Stop generation"
-                title="Stop generation"
+                aria-label={t("shell.stopGeneration")}
+                title={t("shell.stopGeneration")}
               >
                 <Square size={14} />
               </Button>
@@ -260,8 +262,8 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                 className="rounded-full"
                 onClick={handleSubmit}
                 disabled={!canSend}
-                aria-label="Send message"
-                title="Send message (Enter)"
+                aria-label={t("shell.sendMessage")}
+                title={t("shell.sendMessageTitle")}
               >
                 <ArrowUp size={14} />
               </Button>

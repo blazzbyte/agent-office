@@ -11,37 +11,40 @@ import { MessageSquarePlus, Trash2, MessageSquare, Clock, X, Check } from "lucid
 import { listSessions, deleteSession } from "@/services/session.service"
 import type { AgentSession } from "@/types/session"
 import { cn } from "@/lib/utils"
+import { useT, useLocale } from "@/i18n"
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatSessionDate(dateStr?: string): string {
+type Translate = ReturnType<typeof useT>
+
+function formatSessionDate(t: Translate, locale: string, dateStr?: string): string {
   if (!dateStr) return ""
   try {
     const date = new Date(dateStr)
     const now = new Date()
     const diff = now.getTime() - date.getTime()
     const days = Math.floor(diff / 86_400_000)
-    if (days === 0) return "Today"
-    if (days === 1) return "Yesterday"
-    if (days < 7) return `${days} days ago`
-    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    if (days === 0) return t("shell.today")
+    if (days === 1) return t("shell.yesterday")
+    if (days < 7) return t("shell.daysAgo", { count: days })
+    return date.toLocaleDateString(locale, { month: "short", day: "numeric" })
   } catch {
     return ""
   }
 }
 
-function getSessionLabel(session: AgentSession): string {
+function getSessionLabel(t: Translate, session: AgentSession): string {
   if (session.title && session.title !== "Excel Chat") return session.title
   if (session.preview) {
     const cleanPreview = session.preview
       .replace(/\[EXCEL_CONTEXT\][\s\S]*?(?:\[\/EXCEL_CONTEXT\]|$)/s, "")
       .replace(/\[REMINDER\][\s\S]*?(?:\[\/REMINDER\]|$)/s, "")
       .trim()
-    return cleanPreview ? cleanPreview.slice(0, 50) : "Untitled conversation"
+    return cleanPreview ? cleanPreview.slice(0, 50) : t("shell.untitledConversation")
   }
-  return "Untitled conversation"
+  return t("shell.untitledConversation")
 }
 
 // ---------------------------------------------------------------------------
@@ -61,9 +64,11 @@ const SessionRow = memo(function SessionRow({
   onSelect,
   onDelete,
 }: SessionRowProps): React.JSX.Element {
+  const t = useT()
+  const locale = useLocale()
   const [confirming, setConfirming] = useState(false)
-  const label = getSessionLabel(session)
-  const date = formatSessionDate(session.last_active ?? session.started_at)
+  const label = getSessionLabel(t, session)
+  const date = formatSessionDate(t, locale, session.last_active ?? session.started_at)
 
   return (
     <div
@@ -104,7 +109,12 @@ const SessionRow = memo(function SessionRow({
             )}
             {session.message_count != null && session.message_count > 0 && (
               <span className="ml-auto rounded-full bg-muted px-1.5 py-px text-[0.625rem]">
-                {session.message_count} msg{session.message_count !== 1 ? "s" : ""}
+                {t(
+                  session.message_count === 1
+                    ? "shell.messageCount.one"
+                    : "shell.messageCount.other",
+                  { count: session.message_count },
+                )}
               </span>
             )}
           </div>
@@ -123,8 +133,8 @@ const SessionRow = memo(function SessionRow({
               setConfirming(false)
               onDelete(session.id)
             }}
-            aria-label={`Confirm delete session: ${label}`}
-            title="Confirm delete"
+            aria-label={t("shell.confirmDeleteSession", { label })}
+            title={t("shell.confirmDelete")}
           >
             <Check size={12} />
           </Button>
@@ -137,8 +147,8 @@ const SessionRow = memo(function SessionRow({
               e.stopPropagation()
               setConfirming(false)
             }}
-            aria-label="Cancel delete"
-            title="Cancel"
+            aria-label={t("shell.cancelDelete")}
+            title={t("shell.cancel")}
           >
             <X size={12} />
           </Button>
@@ -153,8 +163,8 @@ const SessionRow = memo(function SessionRow({
             e.stopPropagation()
             setConfirming(true)
           }}
-          aria-label={`Delete session: ${label}`}
-          title="Delete session"
+          aria-label={t("shell.deleteSessionLabel", { label })}
+          title={t("shell.deleteSession")}
         >
           <Trash2 size={12} />
         </Button>
@@ -185,6 +195,7 @@ export const SessionSheet = memo(function SessionSheet({
   onNewSession,
   onSwitchSession,
 }: SessionSheetProps) {
+  const t = useT()
   const [sessions, setSessions] = useState<AgentSession[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
@@ -294,15 +305,15 @@ export const SessionSheet = memo(function SessionSheet({
       >
         <SheetHeader className="flex-row items-center justify-between gap-2 border-b p-4 pr-3">
           <SheetTitle className="min-w-0 truncate text-sm font-semibold">
-            Conversations
+            {t("shell.conversations")}
           </SheetTitle>
           <Button
             type="button"
             variant="ghost"
             size="icon-xs"
             onClick={() => onOpenChange(false)}
-            aria-label="Close conversations"
-            title="Close"
+            aria-label={t("shell.closeConversations")}
+            title={t("shell.close")}
           >
             <X size={14} />
           </Button>
@@ -318,7 +329,7 @@ export const SessionSheet = memo(function SessionSheet({
             onClick={handleNewSession}
           >
             <MessageSquarePlus size={14} aria-hidden="true" />
-            New chat
+            {t("shell.newChat")}
           </Button>
         </div>
 
@@ -326,7 +337,7 @@ export const SessionSheet = memo(function SessionSheet({
           ref={listRef}
           className="scrollbar-thin flex flex-1 flex-col gap-1 overflow-y-auto p-2"
           role="list"
-          aria-label="Conversation history"
+          aria-label={t("shell.conversationHistory")}
         >
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
@@ -345,7 +356,7 @@ export const SessionSheet = memo(function SessionSheet({
                 className="opacity-30"
                 aria-hidden="true"
               />
-              <p>No conversations yet</p>
+              <p>{t("shell.noConversations")}</p>
             </div>
           ) : (
             <>

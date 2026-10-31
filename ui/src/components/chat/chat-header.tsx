@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import type { ConnectionStatus } from "@/store/connection.store"
 import type { BridgeStatus } from "@/store/bridge.store"
+import { useT } from "@/i18n"
 
 // ---------------------------------------------------------------------------
 // Status indicator config — narrow taskpane header: status is conveyed with a
@@ -68,6 +69,7 @@ export const ChatHeader = memo(function ChatHeader({
   onNewChatClick,
   onSettingsClick,
 }: ChatHeaderProps): React.JSX.Element {
+  const t = useT()
   const { dotClass, pulse } = DOT_CONFIG[status]
   // Healthy agent but provider not configured → amber dot (action needed).
   const effectiveDotClass =
@@ -80,18 +82,22 @@ export const ChatHeader = memo(function ChatHeader({
   const connectionTitle =
     status === "healthy"
       ? providerConfigured === false
-        ? "Provider not configured — click to enter API key + model"
-        : `Connected — ${providerModel ?? "model ready"} (Agent Office v${gatewayVersion ?? "?"}${hostLabel ? ` · ${hostLabel}` : ""})`
+        ? t("shell.providerNotConfigured")
+        : t("shell.connected", {
+            model: providerModel ?? t("shell.modelReady"),
+            version: gatewayVersion ?? "?",
+            host: hostLabel ? ` · ${hostLabel}` : "",
+          })
       : status === "unhealthy"
-        ? "Offline — click to check connection settings"
-        : "Checking agent…"
+        ? t("shell.offline")
+        : t("shell.checkingAgent")
 
   const bridgeTitle =
     bridgeStatus === "connected"
       ? `Agent Office v${bridgeVersion ?? "?"}`
       : bridgeStatus === "unavailable"
-        ? "Engine offline — restart Excel"
-        : "Checking engine…"
+        ? t("shell.engineOffline")
+        : t("shell.checkingEngine")
 
   return (
     <header
@@ -107,8 +113,8 @@ export const ChatHeader = memo(function ChatHeader({
             variant="ghost"
             size="icon-sm"
             onClick={onHistoryClick}
-            aria-label="Open conversation history"
-            title="Conversations"
+            aria-label={t("shell.openHistory")}
+            title={t("shell.conversations")}
           >
             <History size={14} />
           </Button>
@@ -177,8 +183,8 @@ export const ChatHeader = memo(function ChatHeader({
             variant="ghost"
             size="icon-sm"
             onClick={onNewChatClick}
-            aria-label="New chat"
-            title="New chat"
+            aria-label={t("shell.newChat")}
+            title={t("shell.newChat")}
           >
             <PenSquare size={14} />
           </Button>

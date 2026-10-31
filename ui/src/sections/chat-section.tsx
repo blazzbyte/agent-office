@@ -17,6 +17,7 @@ import { useConnection } from "@/hooks/use-connection"
 import { useBridge } from "@/hooks/use-bridge"
 import { useSession } from "@/hooks/use-session"
 import type { MessageAttachment } from "@/types/chat"
+import { useT } from "@/i18n"
 
 // Distance (px) from the bottom that still counts as "at the bottom"
 const BOTTOM_THRESHOLD_PX = 80
@@ -62,6 +63,7 @@ function MessageListSkeleton(): React.JSX.Element {
 // ---------------------------------------------------------------------------
 
 export function ChatSection(): React.JSX.Element {
+  const t = useT()
   const inputRef = useRef<ChatInputHandle>(null)
   const [pendingSuggestion, setPendingSuggestion] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -220,10 +222,10 @@ export function ChatSection(): React.JSX.Element {
             size="sm"
             className="absolute bottom-3 left-1/2 h-7 -translate-x-1/2 gap-1 text-xs shadow-md"
             onClick={jumpToBottom}
-            aria-label="Jump to latest messages"
+            aria-label={t("shell.jumpToLatest")}
           >
             <ArrowDown size={13} aria-hidden="true" />
-            New messages
+            {t("shell.newMessages")}
           </Button>
         )}
       </div>

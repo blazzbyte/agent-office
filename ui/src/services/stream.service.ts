@@ -14,6 +14,7 @@ import type {
   SseToolProgress,
   SseToolStarted,
 } from "@/types/sse"
+import { translate } from "@/i18n"
 
 // ---------------------------------------------------------------------------
 // Recognised event names (guards against gateway future additions)
@@ -108,7 +109,7 @@ async function processStream(
   if (!response.body) {
     logger.error("SSE: response body is null — cannot read stream")
     callbacks.onError?.({
-      message: "Empty response body",
+      message: translate("system.streamEmptyBody"),
       session_id: "",
       run_id: "",
       seq: 0,
@@ -175,7 +176,7 @@ async function processStream(
     }
     logger.error("SSE: stream read error", { error })
     callbacks.onError?.({
-      message: error instanceof Error ? error.message : "Stream read error",
+      message: error instanceof Error ? error.message : translate("system.streamReadError"),
       session_id: "",
       run_id: "",
       seq: 0,
@@ -234,7 +235,10 @@ async function _runStream(
         body: errorText.slice(0, 200),
       })
       callbacks.onError?.({
-        message: `Gateway error ${response.status}: ${response.statusText}`,
+        message: translate("system.gatewayError", {
+          status: response.status,
+          statusText: response.statusText,
+        }),
         session_id: sessionId,
         run_id: "",
         seq: 0,
@@ -256,7 +260,7 @@ async function _runStream(
       message:
         error instanceof Error
           ? error.message
-          : "Failed to connect to the agent backend",
+          : translate("system.backendConnectFailed"),
       session_id: sessionId,
       run_id: "",
       seq: 0,

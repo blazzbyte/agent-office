@@ -39,6 +39,7 @@ import {
   saveProviderSettings,
 } from "@/services/session.service"
 import { logger } from "@/lib/utils/logger"
+import { useI18nStore, useT, type Language, type MessageKey } from "@/i18n"
 import type { ProviderModelInfo } from "@/types/session"
 
 // ---------------------------------------------------------------------------
@@ -53,8 +54,8 @@ function formatTokens(n: number): string {
 }
 
 /** Per-1M-token price, trimmed for the picker list. */
-function formatPrice(usdPerMillion: number): string {
-  if (usdPerMillion <= 0) return "free"
+function formatPrice(usdPerMillion: number, free: string): string {
+  if (usdPerMillion <= 0) return free
   if (usdPerMillion < 1) return `$${usdPerMillion.toFixed(2)}`
   return `$${usdPerMillion.toFixed(1)}`
 }
@@ -187,7 +188,10 @@ export const ConnectionSheet = memo(function ConnectionSheet({
   open,
   onOpenChange,
 }: ConnectionSheetProps): React.JSX.Element {
+  const t = useT()
   const { checkHealth } = useConnection()
+  const languagePreference = useI18nStore((s) => s.preference)
+  const setLanguagePreference = useI18nStore((s) => s.setPreference)
   const renderStyle = useUiStore(selectRenderStyle)
   const setRenderStyle = useUiStore((s) => s.setRenderStyle)
   const [presetId, setPresetId] = useState(CUSTOM_ID)
@@ -199,7 +203,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
   const [imageBaseUrl, setImageBaseUrl] = useState("")
   const [imageApiKey, setImageApiKey] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<MessageKey | null>(null)
   const [models, setModels] = useState<ProviderModelInfo[] | null>(null)
   const [modelsLoading, setModelsLoading] = useState(false)
   const [modelsAttempted, setModelsAttempted] = useState(false)
@@ -353,19 +357,19 @@ export const ConnectionSheet = memo(function ConnectionSheet({
     const k = apiKey.trim()
     if (!k) return null
     if (k.startsWith("sk_test_") || k.startsWith("sk_live_")) {
-      return "This looks like a Stripe API key, not an AI provider key."
+      return t("settings.apiKey.warn.stripe")
     }
     if (presetId === "openrouter" && !k.startsWith("sk-or-")) {
-      return "OpenRouter keys typically start with sk-or-v1-."
+      return t("settings.apiKey.warn.prefix", { provider: "OpenRouter", prefix: "sk-or-v1-" })
     }
     if (presetId === "gemini" && !k.startsWith("AIzaSy")) {
-      return "Gemini keys typically start with AIzaSy."
+      return t("settings.apiKey.warn.prefix", { provider: "Gemini", prefix: "AIzaSy" })
     }
     if (presetId === "groq" && !k.startsWith("gsk_")) {
-      return "Groq keys typically start with gsk_."
+      return t("settings.apiKey.warn.prefix", { provider: "Groq", prefix: "gsk_" })
     }
     return null
-  }, [apiKey, presetId])
+  }, [apiKey, presetId, t])
 
   const apiKeyPlaceholder = useMemo(() => {
     switch (presetId) {
@@ -389,7 +393,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
       ...imagePayload(),
     }).then((saved) => {
       if (!saved) {
-        setSaveError("Could not save settings — is the add-in host running?")
+        setSaveError("settings.saveError")
         return
       }
       // Settings persist synchronously on the host — health reflects the new
@@ -405,16 +409,16 @@ export const ConnectionSheet = memo(function ConnectionSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-72 p-4" aria-label="Connection settings">
+      <SheetContent side="right" className="w-72 p-4" aria-label={t("settings.ariaLabel")}>
         <SheetHeader className="p-0 pb-3">
-          <SheetTitle className="text-sm">Provider</SheetTitle>
+          <SheetTitle className="text-sm">{t("settings.title")}</SheetTitle>
         </SheetHeader>
 
         <div className="flex flex-col gap-3">
           {/* 1. Provider preset */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="provider-preset" className="text-xs">
-              Provider
+              {t("settings.provider")}
             </Label>
             <Select
               value={presetId}
@@ -422,7 +426,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
               disabled={isLoading}
             >
               <SelectTrigger id="provider-preset" className="h-8 w-full text-xs">
-                <SelectValue placeholder="Choose a provider…" />
+                <SelectValue placeholder={t("settings.provider.placeholder")} />
               </SelectTrigger>
               <SelectContent position="popper">
                 {PROVIDER_PRESETS.map((p) => (
@@ -431,7 +435,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                   </SelectItem>
                 ))}
                 <SelectItem value={CUSTOM_ID} className="text-xs">
-                  Custom (OpenAI-compatible)…
+                  {t("settings.provider.custom")}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -440,7 +444,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
           {/* 2. API key */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="provider-api-key" className="text-xs">
-              API key
+              {t("settings.apiKey")}
             </Label>
             <PasswordInput
               id="provider-api-key"
@@ -463,7 +467,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
           {presetId === CUSTOM_ID && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="provider-base-url" className="text-xs">
-                Base URL
+                {t("settings.baseUrl")}
               </Label>
               <Input
                 id="provider-base-url"
@@ -482,19 +486,19 @@ export const ConnectionSheet = memo(function ConnectionSheet({
           {!showModel && (
             <div className="rounded-md border border-dashed border-border px-2 py-2 text-[0.625rem] leading-snug text-muted-foreground">
               {modelsLoading
-                ? "Connecting — loading the model catalog…"
-                : "Save your key above — the model catalog loads once the connection succeeds."}
+                ? t("settings.model.connecting")
+                : t("settings.model.saveFirst")}
               {catalogFailed && !modelsLoading && (
                 <>
                   {" "}
-                  Couldn&apos;t load the catalog (check the key/provider).
+                  {t("settings.model.catalogFailed")}
                   {" "}
                   <button
                     type="button"
                     className="underline underline-offset-2 hover:text-foreground"
                     onClick={() => setManualModel(true)}
                   >
-                    Enter the model id manually
+                    {t("settings.model.enterManually")}
                   </button>
                 </>
               )}
@@ -505,7 +509,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="provider-model" className="text-xs">
-                Model
+                {t("settings.model")}
               </Label>
               <Button
                 type="button"
@@ -515,7 +519,11 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                 onClick={() => loadModels()}
                 disabled={modelsLoading || isLoading}
               >
-                {modelsLoading ? "Loading…" : models ? "Reload models" : "Load models"}
+                {modelsLoading
+                  ? t("settings.model.loading")
+                  : models
+                    ? t("settings.model.reload")
+                    : t("settings.model.load")}
               </Button>
             </div>
 
@@ -533,7 +541,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                   title={selectedInfo?.name ?? model}
                 >
                   <span className="truncate">
-                    {model || "Select or type a model id…"}
+                    {model || t("settings.model.placeholder")}
                   </span>
                   <ChevronsUpDown className="ml-1 size-3.5 shrink-0 opacity-50" />
                 </Button>
@@ -545,16 +553,16 @@ export const ConnectionSheet = memo(function ConnectionSheet({
               >
                 <Command>
                   <CommandInput
-                    placeholder="Search or type a model id…"
+                    placeholder={t("settings.model.search")}
                     value={search}
                     onValueChange={setSearch}
                     autoFocus
                     className="text-xs"
                   />
                   <CommandList>
-                    <CommandEmpty>No catalog match.</CommandEmpty>
+                    <CommandEmpty>{t("settings.model.noMatch")}</CommandEmpty>
                     {models && models.length > 0 && (
-                      <CommandGroup heading="Provider catalog">
+                      <CommandGroup heading={t("settings.model.catalog")}>
                         {models.map((m) => (
                           <CommandItem
                             key={m.id}
@@ -573,7 +581,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                             <span className="min-w-0 flex-1 truncate">{m.id}</span>
                             <span className="shrink-0 text-[0.625rem] text-muted-foreground">
                               {m.context > 0 ? formatTokens(m.context) : ""}
-                              {m.reasoning ? " · thinks" : ""}
+                              {m.reasoning ? ` · ${t("settings.model.thinks")}` : ""}
                               {modalityBadges(m)}
                             </span>
                           </CommandItem>
@@ -581,7 +589,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                       </CommandGroup>
                     )}
                     {search.trim() && !exactMatch && (
-                      <CommandGroup heading="Custom">
+                      <CommandGroup heading={t("settings.model.custom")}>
                         <CommandItem
                           value={search.trim()}
                           onSelect={() => selectModel(search.trim())}
@@ -589,7 +597,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                         >
                           <Pencil className="size-3.5 opacity-70" />
                           <span className="truncate">
-                            Use &quot;{search.trim()}&quot; as-is
+                            {t("settings.model.useAsIs", { id: search.trim() })}
                           </span>
                         </CommandItem>
                       </CommandGroup>
@@ -601,8 +609,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
 
             {!models && !modelsLoading && (
               <p className="m-0 text-[0.625rem] leading-snug text-muted-foreground">
-                Catalog unavailable (save first if you just edited the key/URL)
-                — you can still type any model id.
+                {t("settings.model.catalogUnavailable")}
               </p>
             )}
 
@@ -610,20 +617,23 @@ export const ConnectionSheet = memo(function ConnectionSheet({
             {selectedInfo && (
               <p className="m-0 text-[0.625rem] leading-snug text-muted-foreground">
                 {selectedInfo.context > 0
-                  ? `${formatTokens(selectedInfo.context)} context`
-                  : "unknown context"}
+                  ? t("settings.model.context", { value: formatTokens(selectedInfo.context) })
+                  : t("settings.model.unknownContext")}
                 {selectedInfo.output > 0
-                  ? ` · ${formatTokens(selectedInfo.output)} max out`
+                  ? ` · ${t("settings.model.maxOut", { value: formatTokens(selectedInfo.output) })}`
                   : ""}
                 {selectedInfo.price_input > 0 || selectedInfo.price_output > 0
-                  ? ` · ${formatPrice(selectedInfo.price_input)}/${formatPrice(selectedInfo.price_output)} per 1M`
+                  ? ` · ${t("settings.model.price", {
+                      input: formatPrice(selectedInfo.price_input, t("settings.model.free")),
+                      output: formatPrice(selectedInfo.price_output, t("settings.model.free")),
+                    })}`
                   : ""}
-                {selectedInfo.reasoning ? " · reasoning" : ""}
+                {selectedInfo.reasoning ? ` · ${t("settings.model.reasoning")}` : ""}
                 {modalityBadges(selectedInfo)}
                 {!selectedInfo.vision &&
                 !(selectedInfo.modalities_input ?? []).includes("image") &&
                 selectedInfo.source !== "default"
-                  ? " · text-only"
+                  ? ` · ${t("settings.model.textOnly")}`
                   : ""}
               </p>
             )}
@@ -634,8 +644,8 @@ export const ConnectionSheet = memo(function ConnectionSheet({
           {showModel && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="provider-image-preset" className="text-xs">
-                Image generation{" "}
-                <span className="text-muted-foreground">(optional)</span>
+                {t("settings.image")}{" "}
+                <span className="text-muted-foreground">{t("settings.image.optional")}</span>
               </Label>
               <Select
                 value={imagePreset}
@@ -643,11 +653,11 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                 disabled={isLoading}
               >
                 <SelectTrigger id="provider-image-preset" className="h-8 w-full text-xs">
-                  <SelectValue placeholder="Choose an image provider…" />
+                  <SelectValue placeholder={t("settings.image.placeholder")} />
                 </SelectTrigger>
                 <SelectContent position="popper">
                   <SelectItem value={IMAGE_OFF} className="text-xs">
-                    Off
+                    {t("settings.image.off")}
                   </SelectItem>
                   {IMAGE_PRESETS.map((p) => (
                     <SelectItem key={p.id} value={p.id} className="text-xs">
@@ -655,7 +665,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                     </SelectItem>
                   ))}
                   <SelectItem value={IMAGE_CUSTOM} className="text-xs">
-                    Custom
+                    {t("settings.image.custom")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -665,7 +675,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                   id="provider-image-model"
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
-                  placeholder={imagePresetDef?.model ?? "image model id"}
+                  placeholder={imagePresetDef?.model ?? t("settings.image.modelPlaceholder")}
                   spellCheck={false}
                   autoComplete="off"
                   disabled={isLoading}
@@ -678,7 +688,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                   id="provider-image-api-key"
                   value={imageApiKey}
                   onChange={(e) => setImageApiKey(e.target.value)}
-                  placeholder="Empty = reuse the chat API key"
+                  placeholder={t("settings.image.apiKeyPlaceholder")}
                   spellCheck={false}
                   autoComplete="off"
                   disabled={isLoading}
@@ -694,7 +704,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                     onChange={(e) => setImageBaseUrl(e.target.value)}
                     placeholder={
                       imagePreset === IMAGE_CUSTOM
-                        ? "Empty = same as chat provider"
+                        ? t("settings.image.baseUrlPlaceholder")
                         : imagePresetDef?.baseUrl
                     }
                     spellCheck={false}
@@ -708,7 +718,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
 
           {saveError && (
             <p className="m-0 text-[0.625rem] leading-snug text-destructive">
-              {saveError}
+              {t(saveError)}
             </p>
           )}
 
@@ -719,16 +729,16 @@ export const ConnectionSheet = memo(function ConnectionSheet({
             onClick={handleSave}
             disabled={isLoading}
           >
-            {catalogReady && model.trim() ? "Save" : "Save & connect"}
+            {catalogReady && model.trim() ? t("settings.save") : t("settings.saveConnect")}
           </Button>
 
           {/* Display preference — purely local to this taskpane */}
           <div className="mt-2 flex flex-col gap-1.5 border-t border-border pt-3">
-            <Label className="text-xs">Chat display</Label>
+            <Label className="text-xs">{t("settings.display")}</Label>
             <div
               className="flex rounded-lg border border-input bg-muted p-0.5"
               role="radiogroup"
-              aria-label="Chat display style"
+              aria-label={t("settings.display.ariaLabel")}
             >
               {(["bubbles", "flat"] as const).map((style) => (
                 <button
@@ -744,11 +754,35 @@ export const ConnectionSheet = memo(function ConnectionSheet({
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {style === "bubbles" ? "Bubbles" : "Flat"}
+                  {style === "bubbles" ? t("settings.display.bubbles") : t("settings.display.flat")}
                 </button>
               ))}
             </div>
 
+            <Label htmlFor="ui-language" className="mt-2 text-xs">
+              {t("settings.language")}
+            </Label>
+            <Select
+              value={languagePreference ?? "auto"}
+              onValueChange={(v) =>
+                void setLanguagePreference(v === "auto" ? null : (v as Language))
+              }
+            >
+              <SelectTrigger id="ui-language" className="h-8 w-full text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="auto" className="text-xs">
+                  {t("settings.language.auto")}
+                </SelectItem>
+                <SelectItem value="en" className="text-xs">
+                  English
+                </SelectItem>
+                <SelectItem value="es" className="text-xs">
+                  Español
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </SheetContent>

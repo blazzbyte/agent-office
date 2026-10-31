@@ -87,6 +87,53 @@ namespace AgentOffice.Taskpane
             }
         }
 
+/// <summary>UI language (settings.json "language", e.g. "es"); null = follow Office/Windows.</summary>
+        public static string Language
+        {
+            get
+            {
+                object raw;
+                var fresh = LoadFresh();
+                if (fresh != null && fresh.TryGetValue("language", out raw) && raw is string)
+                {
+                    var value = ((string)raw).Trim();
+                    if (value.Length > 0) return value;
+                }
+                return null;
+            }
+        }
+
+/// <summary>Persist the UI language; empty removes the key (automatic).</summary>
+        public static void SaveLanguage(string language)
+        {
+            var value = (language ?? string.Empty).Trim();
+            SaveMutate(dict =>
+            {
+                if (value.Length > 0) dict["language"] = value;
+                else dict.Remove("language");
+            });
+        }
+
+/// <summary>User-defined UI string overrides (settings.json "translations": { key: text }).</summary>
+        public static Dictionary<string, object> Translations
+        {
+            get
+            {
+                var result = new Dictionary<string, object>();
+                object raw;
+                var fresh = LoadFresh();
+                if (fresh == null || !fresh.TryGetValue("translations", out raw))
+                    return result;
+                var map = raw as Dictionary<string, object>;
+                if (map == null) return result;
+                foreach (var pair in map)
+                {
+                    if (pair.Value is string) result[pair.Key] = pair.Value;
+                }
+                return result;
+            }
+        }
+
         // ------------------------------------------------------------------
         // Shared file access (also used by Agent.ProviderSettings)
         // ------------------------------------------------------------------

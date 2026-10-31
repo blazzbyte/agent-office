@@ -9,6 +9,7 @@ import {
   selectProviderContext,
   selectProviderModel,
 } from "@/store/connection.store"
+import { useT, useLocale } from "@/i18n"
 
 // ---------------------------------------------------------------------------
 // ContextMetricsBar — the opencode-style footer under the chat input:
@@ -40,6 +41,8 @@ function formatCost(usd: number): string {
 }
 
 export const ContextMetricsBar = memo(function ContextMetricsBar(): React.JSX.Element | null {
+  const t = useT()
+  const locale = useLocale()
   const contextUsage = useChatStore(selectContextUsage)
   const sessionCost = useChatStore(selectSessionCost)
   const providerContext = useConnectionStore(selectProviderContext)
@@ -64,7 +67,7 @@ export const ContextMetricsBar = memo(function ContextMetricsBar(): React.JSX.El
     parts.push({
       key: "model",
       node: (
-        <span className="min-w-0 truncate" title={`Active model: ${providerModel}`}>
+        <span className="min-w-0 truncate" title={t("messages.metrics.activeModel", { model: providerModel })}>
           {providerModel}
         </span>
       ),
@@ -79,8 +82,11 @@ export const ContextMetricsBar = memo(function ContextMetricsBar(): React.JSX.El
           className={nearLimit ? "font-medium text-amber-600 dark:text-amber-500" : undefined}
           title={
             window > 0
-              ? `Context used on the last step: ${tokens.toLocaleString()} of ${window.toLocaleString()} tokens`
-              : `Context used on the last step: ${tokens.toLocaleString()} tokens`
+              ? t("messages.metrics.contextOfWindow", {
+                  tokens: tokens.toLocaleString(locale),
+                  window: window.toLocaleString(locale),
+                })
+              : t("messages.metrics.context", { tokens: tokens.toLocaleString(locale) })
           }
         >
           {pct !== null ? `${formatTokens(tokens)} (${pct}%)` : formatTokens(tokens)}
@@ -93,7 +99,7 @@ export const ContextMetricsBar = memo(function ContextMetricsBar(): React.JSX.El
     parts.push({
       key: "cost",
       node: (
-        <span title="Estimated spend for this session (catalog pricing — your provider invoice is authoritative)">
+        <span title={t("messages.metrics.cost")}>
           {formatCost(sessionCost)}
         </span>
       ),

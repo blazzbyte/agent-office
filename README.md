@@ -87,6 +87,10 @@ and the agent follows them on every request:
 ]
 ```
 
+**Language:** the UI is available in English and Spanish (Settings →
+Language). Any UI text can be overridden in `settings.json` with a
+`"translations"` map of key → text.
+
 ### 4. Try it out
 
 - Excel: *"read A1:B5"*, *"create a sales table with a column chart"*.

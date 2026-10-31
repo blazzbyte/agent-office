@@ -3,6 +3,7 @@ import { Copy, Check, Wrench, CheckCircle, Brain, ChevronDown, FileText } from "
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { useT, useLocale } from "@/i18n"
 import { TypingIndicator } from "./typing-indicator"
 import type { AssistantMessage, ChatMessage, RunMeta, ToolMessage, UserMessage } from "@/types/chat"
 const ReactMarkdown = lazy(async () => {
@@ -23,18 +24,22 @@ const ReactMarkdown = lazy(async () => {
 
 const MIN_VALID_MS = 1_577_836_800_000 // Jan 1 2020
 
-function formatRelativeTime(ms: number, now: number): string | null {
+function formatRelativeTime(
+  ms: number,
+  now: number,
+  t: ReturnType<typeof useT>,
+): string | null {
   try {
-    if (now - ms < 10_000 && now >= ms) return "just now"
+    if (now - ms < 10_000 && now >= ms) return t("messages.time.justNow")
     const diff = now - ms
     const seconds = Math.floor(diff / 1000)
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)
     const days = Math.floor(hours / 24)
-    if (days > 0) return `${days}d ago`
-    if (hours > 0) return `${hours}h ago`
-    if (minutes > 0) return `${minutes}m ago`
-    return `${seconds}s ago`
+    if (days > 0) return t("messages.time.daysAgo", { count: days })
+    if (hours > 0) return t("messages.time.hoursAgo", { count: hours })
+    if (minutes > 0) return t("messages.time.minutesAgo", { count: minutes })
+    return t("messages.time.secondsAgo", { count: seconds })
   } catch {
     return null
   }
@@ -95,6 +100,7 @@ const CopyButton = memo(function CopyButton({
 }: {
   content: string
 }): React.JSX.Element {
+  const t = useT()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(async () => {
@@ -113,8 +119,8 @@ const CopyButton = memo(function CopyButton({
       variant="ghost"
       size="icon-xs"
       onClick={handleCopy}
-      title={copied ? "Copied!" : "Copy message"}
-      aria-label={copied ? "Copied!" : "Copy message"}
+      title={copied ? t("messages.copied") : t("messages.copy")}
+      aria-label={copied ? t("messages.copied") : t("messages.copy")}
       className="h-5 w-5 rounded-md border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted hover:text-foreground"
     >
       {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -208,10 +214,11 @@ const ReasoningAccordion = memo(function ReasoningAccordion({
   /** Flat mode: no avatar gutter — the row spans the full width. */
   flat?: boolean
 }): React.JSX.Element {
+  const t = useT()
   const content = (
     <CollapsibleToolCard
       icon={<Brain size={13} />}
-      title={active ? "Thinking..." : "Reasoning"}
+      title={active ? t("messages.thinking") : t("messages.reasoning")}
       detail={text}
       active={active}
       className={standalone ? undefined : "mb-2"}
@@ -246,9 +253,10 @@ const UserBubble = memo(function UserBubble({
   /** Flat mode (opencode-style): full-width, input-field background, no side. */
   flat?: boolean
 }): React.JSX.Element {
+  const t = useT()
   const now = useNow()
   const isValid = msg.timestamp >= MIN_VALID_MS
-  const relTime = isValid ? formatRelativeTime(msg.timestamp, now) : null
+  const relTime = isValid ? formatRelativeTime(msg.timestamp, now, t) : null
 
   // Strip internal app context and reminders from the user bubble view
   const displayContent = msg.content
@@ -299,7 +307,9 @@ const UserBubble = memo(function UserBubble({
                   <FileText size={13} aria-hidden="true" />
                   <span className="max-w-40 truncate">{attachment.name}</span>
                   {attachment.pageImages && (
-                    <span className="opacity-70">({attachment.pageImages.length}p)</span>
+                    <span className="opacity-70">
+                      {t("messages.attachmentPages", { count: attachment.pageImages.length })}
+                    </span>
                   )}
                 </span>
               ),
@@ -348,6 +358,8 @@ const AssistantBubble = memo(function AssistantBubble({
   /** Flat mode (opencode-style): full-width, no avatar, no card chrome. */
   flat?: boolean
 }): React.JSX.Element {
+  const t = useT()
+  const locale = useLocale()
   const now = useNow()
   const isActive = isLoading && isLast && msg.streaming === true
   const hasReasoning = !!msg.reasoning
@@ -356,10 +368,12 @@ const AssistantBubble = memo(function AssistantBubble({
   const showTyping = !msg.content && msg.streaming === true && !hasReasoning
   const showBubble = hasContent || showTyping || hasImages
   const relTime =
-    msg.timestamp >= MIN_VALID_MS ? formatRelativeTime(msg.timestamp, now) : null
+    msg.timestamp >= MIN_VALID_MS ? formatRelativeTime(msg.timestamp, now, t) : null
   const runMetaLine = runMeta
     ? [
-        runMeta.tokens > 0 ? `${runMeta.tokens.toLocaleString()} tokens` : null,
+        runMeta.tokens > 0
+          ? t("messages.runTokens", { count: runMeta.tokens.toLocaleString(locale) })
+          : null,
         formatRunDuration(runMeta.durationMs),
       ]
         .filter(Boolean)
@@ -409,7 +423,7 @@ const AssistantBubble = memo(function AssistantBubble({
                   <img
                     key={index}
                     src={image}
-                    alt="Generated by the model"
+                    alt={t("messages.generatedImageAlt")}
                     className="max-h-48 max-w-full rounded-md border border-border object-contain"
                   />
                 ))}

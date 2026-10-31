@@ -135,5 +135,7 @@ export const healthResponseSchema = z.object({
   model_modalities_input: z.array(z.string()).nullish(),
   /** Non-text output modalities of the active model ("image","audio"). */
   model_modalities_output: z.array(z.string()).nullish(),
+  /** Office host running the add-in ("excel" | "word" | "powerpoint"). */
+  host_app: nullishString,
 })
 

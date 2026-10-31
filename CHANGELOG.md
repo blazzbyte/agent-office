@@ -5,13 +5,24 @@ All notable changes to **Agent Office** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [Semantic Versioning](https://semver.org/).
 
-## [1.1.0] - 2026-10-13
+## [1.1.0] - 2026-10-31
 
 ### Added
 
 - `customInstructions` in `settings.json` (string or array of strings):
   standing instructions appended to the system prompt on every request,
   including existing sessions (#3).
+- UI available in English and Spanish, with a Language selector in Settings
+  (automatic follows Office/Windows). `settings.json` accepts `"language"`
+  and a `"translations"` map to override any UI text (#2).
+- Welcome screen with its own subtitle and suggestions for Excel, Word and
+  PowerPoint.
+
+### Fixed
+
+- The UI never received the host app from `/health` (dropped by schema
+  validation), so the header never showed it and Word/PowerPoint got Excel's
+  welcome screen.
 
 ### Security
 

@@ -8,6 +8,7 @@ import {
 } from "@/store/chat.store"
 import type { ChatMessage } from "@/types/chat"
 import type { AgentSessionMessage } from "@/types/session"
+import { translate } from "@/i18n"
 
 // ---------------------------------------------------------------------------
 // History mapping (shared by initSession + switchSession)
@@ -122,7 +123,7 @@ export function useSession() {
       setIsInitializing(false)
       return null
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Session init failed"
+      const msg = error instanceof Error ? error.message : translate("system.sessionInitFailed")
       logger.error("useSession: unexpected error during init", { error })
       setInitError(msg)
       setIsInitializing(false)
@@ -147,9 +148,8 @@ export function useSession() {
       // (Phase 4: native tool calling, see src/Agent/AgentPrompt.cs).
       const created = await createSession({})
       if (!created) {
-        const msg = "Failed to create session — check backend connection"
-        logger.error(msg)
-        setInitError(msg)
+        logger.error("Failed to create session — check backend connection")
+        setInitError(translate("system.sessionCreateFailedBackend"))
         setIsInitializing(false)
         return null
       }
@@ -158,7 +158,7 @@ export function useSession() {
       setIsInitializing(false)
       return created.id
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Session creation failed"
+      const msg = error instanceof Error ? error.message : translate("system.sessionCreateFailed")
       logger.error("useSession: unexpected error during ensureSession", { error })
       setInitError(msg)
       setIsInitializing(false)
@@ -198,7 +198,7 @@ export function useSession() {
       try {
         const session = await getSession(targetSessionId)
         if (!session) {
-          setInitError(`Session ${targetSessionId} not found on gateway`)
+          setInitError(translate("system.sessionNotFound", { sessionId: targetSessionId }))
           setIsInitializing(false)
           return false
         }
@@ -231,7 +231,7 @@ export function useSession() {
         return true
       } catch (error) {
         logger.error("useSession: switchSession failed", { error })
-        setInitError("Failed to switch session")
+        setInitError(translate("system.sessionSwitchFailed"))
         setIsInitializing(false)
         return false
       }

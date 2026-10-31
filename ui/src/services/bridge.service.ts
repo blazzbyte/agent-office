@@ -2,6 +2,7 @@
 import { logger } from "@/lib/utils/logger"
 import type { BridgeHealth } from "@/types/bridge"
 import type { ExcelAction, StepResult } from "@/types/excel-actions"
+import { translate } from "@/i18n"
 
 const HEALTH_URL = "/bridge/v1/health"
 const TOKEN_URL = "/bridge/v1/token"
@@ -147,8 +148,7 @@ export async function executeViaBridge(action: ExcelAction): Promise<StepResult>
       return {
         id: action.id,
         status: "error",
-        summary:
-          "The native engine rejected authentication (Excel may have restarted). Reload the taskpane and try again.",
+        summary: translate("system.bridgeAuthRejected"),
       }
     }
 
@@ -156,7 +156,7 @@ export async function executeViaBridge(action: ExcelAction): Promise<StepResult>
       return {
         id: action.id,
         status: "error",
-        summary: `Native engine request failed (HTTP ${res.status}).`,
+        summary: translate("system.bridgeRequestFailed", { status: res.status }),
       }
     }
 
@@ -171,8 +171,7 @@ export async function executeViaBridge(action: ExcelAction): Promise<StepResult>
     return {
       id: action.id,
       status: "error",
-      summary:
-        "The native engine is unreachable. Restart Excel and try again.",
+      summary: translate("system.bridgeUnreachable"),
     }
   }
 }

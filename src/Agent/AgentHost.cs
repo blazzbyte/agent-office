@@ -62,6 +62,10 @@ namespace AgentOffice.Agent
                     return Result(200, HandleGetProvider());
                 if ((method == "PUT" || method == "POST") && path == "/api/settings/provider")
                     return Result(200, HandleSaveProvider(body));
+                if (method == "GET" && path == "/api/settings/ui")
+                    return Result(200, HandleGetUi());
+                if ((method == "PUT" || method == "POST") && path == "/api/settings/ui")
+                    return Result(200, HandleSaveUi(body));
                 if (method == "GET" && path == "/api/settings/provider/models")
                     return await HandleProviderModelsAsync().ConfigureAwait(false);
                 if (method == "GET" && path == "/api/sessions")
@@ -399,6 +403,31 @@ namespace AgentOffice.Agent
             // refresh the run path's cache so step costs compute correctly.
             _ = ModelRegistry.RefreshProviderCacheAsync();
             return HandleGetProvider();
+        }
+
+/// <summary>GET /api/settings/ui — UI language and user-defined translation overrides.</summary>
+        private static string HandleGetUi()
+        {
+            return Json.Serialize(new Dictionary<string, object>
+            {
+                ["object"] = "agentoffice.ui.settings",
+                ["ui"] = new Dictionary<string, object>
+                {
+                    ["language"] = Taskpane.HostSettings.Language ?? string.Empty,
+                    ["translations"] = Taskpane.HostSettings.Translations,
+                },
+            });
+        }
+
+/// <summary>PUT /api/settings/ui — persist the language choice (empty = automatic).</summary>
+        private static string HandleSaveUi(string body)
+        {
+            var parsed = !string.IsNullOrWhiteSpace(body)
+                ? Json.Deserialize<Dictionary<string, object>>(body)
+                : new Dictionary<string, object>();
+            var language = GetStringOrNull(parsed, "language");
+            if (language != null) Taskpane.HostSettings.SaveLanguage(language);
+            return HandleGetUi();
         }
 
         private string HandleListSessions(string query)
