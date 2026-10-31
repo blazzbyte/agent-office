@@ -12,7 +12,7 @@ import {
 import { useConnectionStore, selectModelAccepts } from "@/store/connection.store"
 import { useSession } from "@/hooks/use-session"
 import type { AssistantMessage, MessageAttachment, UserMessage } from "@/types/chat"
-import type { SseError, SseMessageStarted } from "@/types/sse"
+import type { SseError } from "@/types/sse"
 import type { AgentSessionMessage } from "@/types/session"
 
 // ---------------------------------------------------------------------------
@@ -119,7 +119,7 @@ export function useChat() {
         sessionId,
         wireContent,
         {
-          onMessageStarted: (_payload: SseMessageStarted) => {
+          onMessageStarted: () => {
             const id = currentAssistantIdRef.current
             const msg = id
               ? useChatStore.getState().messages.find((m) => m.id === id)
