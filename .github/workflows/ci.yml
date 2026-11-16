@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Check tracked sources
+        shell: pwsh
+        run: scripts/Test-TrackedSources.ps1
+      - name: Build tests
+        run: msbuild tests/AgentOffice.Tests/AgentOffice.Tests.csproj -p:Configuration=Release -v:m -nologo
+      - name: Run tests
+        run: tests/AgentOffice.Tests/bin/Release/AgentOffice.Tests.exe
+
+  addin:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Create signing key
+        shell: powershell
+        run: scripts/New-DevCertificate.ps1
+      - name: Build add-in
+        run: msbuild AgentOffice.sln -p:Configuration=Release -v:m -nologo

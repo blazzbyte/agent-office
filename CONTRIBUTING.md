@@ -99,6 +99,18 @@ MajorUpgrade).
 **Note:** installing the MSI on a dev machine repoints the add-in registration to
 `%LOCALAPPDATA%` — rebuild the Debug config to restore the dev loop afterwards.
 
+## Tests
+
+Host-independent logic has a dependency-free test runner (no Office needed):
+
+```powershell
+& ".../MSBuild.exe" tests\AgentOffice.Tests\AgentOffice.Tests.csproj /p:Configuration=Release
+tests\AgentOffice.Tests\bin\Release\AgentOffice.Tests.exe
+```
+
+CI runs it on every push and pull request, together with the UI build, the
+add-in build and `scripts\Test-TrackedSources.ps1`.
+
 ## House rules for PRs
 
 - Web UI: `npx tsc -b --noEmit` must be clean (Vite dev doesn't typecheck —
