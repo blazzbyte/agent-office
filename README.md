@@ -30,10 +30,11 @@ The agent exposes actions tailored to the active Office app:
 - **Excel** — read/write ranges, tables, charts, formatting, pivot tables,
   Power Query, goal seek, sheet protection, PDF export, native equation
   insertion, range capture (vision), and Ribbon command execution.
-- **Word** — read/write paragraphs, styles, tables, comments, bookmarks, find
-  & replace, and document export.
-- **PowerPoint** — list slides, add shapes, edit text, apply themes, export,
-  and capture slide images.
+- **Word** — read/write paragraphs, styles, tables, find & replace, and PDF
+  export.
+- **PowerPoint** — read slides, add/duplicate/delete slides, edit text, insert
+  text boxes, shapes, tables and pictures, apply themes, speaker notes, and
+  PDF export.
 
 Everything runs **locally and in-process**: no open ports, no proxy — the only
 traffic that leaves your machine is the LLM API you configured yourself.
