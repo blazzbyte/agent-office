@@ -56,7 +56,7 @@ logs/
 *.log
 
 # ---- WiX Toolchain & Installer Outputs ----
-tools/
+/tools/
 installer/out/
 *.msi
 *.wixobj
