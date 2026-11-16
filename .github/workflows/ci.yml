@@ -49,6 +49,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: microsoft/setup-msbuild@v2
+      - name: Install VSTO runtime
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://go.microsoft.com/fwlink/?LinkId=158917' -OutFile "$env:RUNNER_TEMP\vstor_redist.exe"
+          $setup = Start-Process "$env:RUNNER_TEMP\vstor_redist.exe" -ArgumentList '/q', '/norestart' -Wait -PassThru
+          if ($setup.ExitCode -notin 0, 3010) { exit $setup.ExitCode }
       - name: Create signing key
         shell: powershell
         run: scripts/New-DevCertificate.ps1
