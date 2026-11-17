@@ -111,6 +111,6 @@ src/                                (AgentOffice.csproj — the whole add-in)
     ├── ProviderSettings.cs         Provider + model configuration
     ├── SessionStore.cs             Persistent session storage
     ├── ImageGeneration.cs          Image generation dispatcher
-    ├── ImageSearch.cs              Openverse image search
+    ├── ImageDefaults.cs            Image model derived from the chat provider
     └── Tools/                      Native tool schemas and invocations
 ```
