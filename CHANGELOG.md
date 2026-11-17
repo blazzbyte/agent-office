@@ -7,6 +7,13 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- "Ask before changes" in Settings: the agent pauses before each tool call
+  that modifies the document and waits for Allow, Allow all (rest of the
+  turn) or Deny. Off by default; also `"confirmChanges": true` in
+  `settings.json`.
+
 ### Changed
 
 - Image generation is a single switch in Settings, shown in PowerPoint. The
