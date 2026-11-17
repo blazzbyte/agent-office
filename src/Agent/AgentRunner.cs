@@ -21,6 +21,13 @@ namespace AgentOffice.Agent
             "ERROR: Tool execution interrupted — the run was cancelled before " +
             "this call could execute. Do not retry it unless the user asks.";
 
+        private const string DeclinedToolResult =
+            "ERROR: The user declined this action, so it was not executed. " +
+            "Do not retry it; ask the user how they want to proceed.";
+
+        private readonly bool _confirmChanges; // snapshotted per run
+        private bool _approveAll;              // user allowed the rest of this run
+
         private readonly AgentSession _session;
         private readonly LlmClient _llm;
         private readonly SseEmitter _sse;
@@ -46,6 +53,7 @@ namespace AgentOffice.Agent
             _ct = ct;
             _onUsage = onUsage;
             _maxSteps = ProviderSettings.MaxSteps;
+            _confirmChanges = Taskpane.HostSettings.ConfirmChanges;
         }
 
 /// <summary>The message_id of the last assistant step (for run.completed).</summary>
@@ -450,6 +458,29 @@ namespace AgentOffice.Agent
             var toolName = string.IsNullOrEmpty(call.Name) ? "unknown" : call.Name;
             object parsedArgs = ParseArgs(call);
 
+            if (_confirmChanges && !_approveAll && ToolPolicy.ChangesDocument(toolName))
+            {
+                var decision = await RequestApprovalAsync(assistantId, call, toolName, parsedArgs)
+                    .ConfigureAwait(false);
+                if (decision == null)
+                {
+                    SettleUnexecuted(call, InterruptedToolResult, "Error: interrupted");
+                    return;
+                }
+                if (decision == "reject")
+                {
+                    // Open a card of its own so the result does not land on an earlier call.
+                    _sse.Emit(_write, "tool.started", new Dictionary<string, object>
+                    {
+                        ["message_id"] = assistantId,
+                        ["tool_name"] = toolName,
+                    });
+                    SettleUnexecuted(call, DeclinedToolResult, "Declined");
+                    return;
+                }
+                if (decision == "approve_all") _approveAll = true;
+            }
+
             _sse.Emit(_write, "tool.started", new Dictionary<string, object>
             {
                 ["message_id"] = assistantId,
@@ -506,15 +537,57 @@ namespace AgentOffice.Agent
             });
         }
 
-/// <summary>Persist + emit an error result for a call that never ran.</summary>
+/// <summary>Ask the user to allow one call; returns the decision, or null when the run is cancelled first.</summary>
+        private async Task<string> RequestApprovalAsync(
+            string assistantId, LlmToolCall call, string toolName, object parsedArgs)
+        {
+            var pending = new TaskCompletionSource<string>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (_session.Sync)
+            {
+                _session.PendingApproval = pending;
+                _session.PendingApprovalCallId = call.Id;
+            }
+
+            _sse.Emit(_write, "tool.approval_requested", new Dictionary<string, object>
+            {
+                ["message_id"] = assistantId,
+                ["tool_name"] = toolName,
+                ["call_id"] = call.Id,
+                ["args"] = parsedArgs,
+            });
+
+            try
+            {
+                using (_ct.Register(() => pending.TrySetResult(null)))
+                {
+                    return await pending.Task.ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                lock (_session.Sync)
+                {
+                    _session.PendingApproval = null;
+                    _session.PendingApprovalCallId = null;
+                }
+            }
+        }
+
+/// <summary>Persist + emit an error result for a call that never ran because the run was cancelled.</summary>
         private void SettleInterrupted(LlmToolCall call)
+        {
+            SettleUnexecuted(call, InterruptedToolResult, "Error: interrupted");
+        }
+
+/// <summary>Persist + emit a result for a call that never ran.</summary>
+        private void SettleUnexecuted(LlmToolCall call, string resultText, string preview)
         {
             var toolName = string.IsNullOrEmpty(call.Name) ? "unknown" : call.Name;
             AgentMessage toolMessage;
             lock (_session.Sync)
             {
-                toolMessage = _session.AppendToolMessage(
-                    call.Id, toolName, InterruptedToolResult);
+                toolMessage = _session.AppendToolMessage(call.Id, toolName, resultText);
             }
             _runMessages.Add(toolMessage);
 
@@ -522,7 +595,7 @@ namespace AgentOffice.Agent
             {
                 ["message_id"] = LastAssistantId,
                 ["tool_name"] = toolName,
-                ["preview"] = "Error: interrupted",
+                ["preview"] = preview,
                 ["args"] = ParseArgs(call),
             });
         }

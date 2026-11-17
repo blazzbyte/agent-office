@@ -103,6 +103,23 @@ namespace AgentOffice.Taskpane
             }
         }
 
+/// <summary>Ask the user before each tool call that modifies the document (settings.json "confirmChanges").</summary>
+        public static bool ConfirmChanges
+        {
+            get
+            {
+                object raw;
+                var fresh = LoadFresh();
+                return fresh != null && fresh.TryGetValue("confirmChanges", out raw) &&
+                       raw is bool && (bool)raw;
+            }
+        }
+
+        public static void SaveConfirmChanges(bool value)
+        {
+            SaveMutate(dict => dict["confirmChanges"] = value);
+        }
+
 /// <summary>Persist the UI language; empty removes the key (automatic).</summary>
         public static void SaveLanguage(string language)
         {

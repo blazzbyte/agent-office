@@ -188,6 +188,7 @@
     <Compile Include="Agent\AgentHost.cs" />
     <Compile Include="Agent\AgentPrompt.cs" />
     <Compile Include="Agent\ImageDefaults.cs" />
+    <Compile Include="Agent\ToolPolicy.cs" />
     <Compile Include="Agent\ImageGeneration.cs" />
     <Compile Include="AppContext.cs" />
     <Compile Include="Bridge\Word\WordActions.cs" />
