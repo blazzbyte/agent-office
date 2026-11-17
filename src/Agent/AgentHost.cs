@@ -85,6 +85,13 @@ namespace AgentOffice.Agent
                         }
                         return Result(200, HandleDeleteSession(sessionId));
                     }
+                    if (sub == "approval" && method == "POST")
+                    {
+                        var session = _sessions.Get(sessionId);
+                        return session == null
+                            ? Result(404, ErrorJson("Session not found: " + sessionId, "not_found"))
+                            : HandleApproval(session, body);
+                    }
                     if (sub == "messages" && method == "GET")
                     {
                         var session = _sessions.Get(sessionId);
@@ -415,12 +422,13 @@ namespace AgentOffice.Agent
                 ["ui"] = new Dictionary<string, object>
                 {
                     ["language"] = Taskpane.HostSettings.Language ?? string.Empty,
+                    ["confirmChanges"] = Taskpane.HostSettings.ConfirmChanges,
                     ["translations"] = Taskpane.HostSettings.Translations,
                 },
             });
         }
 
-/// <summary>PUT /api/settings/ui — persist the language choice (empty = automatic).</summary>
+/// <summary>PUT /api/settings/ui — persist the fields present in the body.</summary>
         private static string HandleSaveUi(string body)
         {
             var parsed = !string.IsNullOrWhiteSpace(body)
@@ -428,7 +436,30 @@ namespace AgentOffice.Agent
                 : new Dictionary<string, object>();
             var language = GetStringOrNull(parsed, "language");
             if (language != null) Taskpane.HostSettings.SaveLanguage(language);
+            var confirmChanges = GetBoolOrNull(parsed, "confirmChanges");
+            if (confirmChanges.HasValue) Taskpane.HostSettings.SaveConfirmChanges(confirmChanges.Value);
             return HandleGetUi();
+        }
+
+/// <summary>Resolve the session's pending tool approval; 409 when the call is no longer waiting.</summary>
+        private static KeyValuePair<int, string> HandleApproval(AgentSession session, string body)
+        {
+            var parsed = !string.IsNullOrWhiteSpace(body)
+                ? Json.Deserialize<Dictionary<string, object>>(body)
+                : new Dictionary<string, object>();
+            var callId = GetStringOrNull(parsed, "call_id");
+            var decision = GetStringOrNull(parsed, "decision");
+            if (decision != "approve" && decision != "approve_all" && decision != "reject")
+                return Result(400, ErrorJson("Invalid decision.", "invalid_request"));
+
+            System.Threading.Tasks.TaskCompletionSource<string> pending;
+            lock (session.Sync)
+            {
+                pending = session.PendingApprovalCallId == callId ? session.PendingApproval : null;
+            }
+            if (pending == null || !pending.TrySetResult(decision))
+                return Result(409, ErrorJson("No approval pending for this call.", "not_pending"));
+            return Result(200, "{\"ok\":true}");
         }
 
         private string HandleListSessions(string query)

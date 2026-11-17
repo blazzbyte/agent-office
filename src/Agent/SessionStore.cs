@@ -74,6 +74,10 @@ namespace AgentOffice.Agent
 /// <summary>True while a chat stream runs on this session (one at a time).</summary>
         public bool RunActive;
 
+/// <summary>Tool call waiting for the user's decision, completed with "approve", "approve_all" or "reject".</summary>
+        public System.Threading.Tasks.TaskCompletionSource<string> PendingApproval;
+        public string PendingApprovalCallId;
+
 /// <summary>Images the model generated during runs (data URLs), newest last, rolling-capped.</summary>
         public sealed class GeneratedImage
         {

@@ -29,6 +29,13 @@ namespace AgentOffice.Tests
             Program.Equal("array is wrapped", 3, JsonCompat.ToArrayList(new object[] { 1, 2, 3 }).Count);
             Program.Equal("other shapes rejected", null, JsonCompat.ToArrayList("x"));
 
+            Program.True("writes need approval", ToolPolicy.ChangesDocument("write_range"));
+            Program.True("deletes need approval", ToolPolicy.ChangesDocument("delete_slide"));
+            Program.True("unknown tools need approval", ToolPolicy.ChangesDocument("future_tool"));
+            Program.True("reads do not", !ToolPolicy.ChangesDocument("read_range"));
+            Program.True("captures do not", !ToolPolicy.ChangesDocument("capture_range"));
+            Program.True("exports do not", !ToolPolicy.ChangesDocument("export_pdf"));
+
             Program.Equal("OpenAI image model", "gpt-image-1",
                 ImageDefaults.Model("https://api.openai.com/v1"));
             Program.Equal("OpenRouter image model", "google/gemini-2.5-flash-image",
