@@ -117,7 +117,9 @@ export interface ProviderSettings {
   maxTokens: number
   /** Safety cap on tool-use steps per turn (default 50, ceiling 500). */
   maxSteps: number
-  /** Optional image-generation model id (generate_image tool). Empty = off. */
+  /** Whether image generation is turned on. */
+  imageEnabled: boolean
+  /** Explicit image model id. Empty = the default for the chat provider. */
   imageModel: string
   /** Optional provider overrides for the image call (empty = same as chat). */
   imageBaseUrl: string
