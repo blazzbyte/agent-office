@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react"
-import { Check, ChevronsUpDown, Pencil } from "lucide-react"
+import { Check, ChevronRight, ChevronsUpDown, Pencil } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -30,9 +30,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { useConnection } from "@/hooks/use-connection"
 import { useUiStore, selectRenderStyle } from "@/store/ui.store"
+import { useConnectionStore, selectHostApp } from "@/store/connection.store"
 import {
   getProviderModels,
   getProviderSettings,
@@ -99,14 +106,15 @@ function presetForUrl(url: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Image generation presets — the generate_image tool's provider, independent
-// from chat. Three wire shapes host-side: "openai-images" (the de-facto
-// standard: OpenAI / OpenRouter / Together / custom), "gemini" (native
-// generateContent), "a1111" (local Automatic1111 / SD.Next — no key/model).
+// Image generation presets. "auto" sends no overrides: the host derives the
+// image model from the chat provider and reuses its key.
 // ---------------------------------------------------------------------------
 
-const IMAGE_OFF = "off"
+const IMAGE_AUTO = "auto"
 const IMAGE_CUSTOM = "custom"
+
+/** Chat presets the host can derive an image model for. */
+const AUTO_IMAGE_PRESETS: ReadonlySet<string> = new Set(["openai", "openrouter", "gemini"])
 
 interface ImagePreset {
   id: string
@@ -168,7 +176,7 @@ function inferImagePreset(s: {
   imageBaseUrl: string
   imageProvider?: string
 }): string {
-  if (!s.imageModel && !s.imageBaseUrl) return IMAGE_OFF
+  if (!s.imageModel && !s.imageBaseUrl) return IMAGE_AUTO
   const url = s.imageBaseUrl.trim().replace(/\/+$/, "").toLowerCase()
   const match = IMAGE_PRESETS.find(
     (p) =>
@@ -198,7 +206,10 @@ export const ConnectionSheet = memo(function ConnectionSheet({
   const [apiKey, setApiKey] = useState("")
   const [baseUrl, setBaseUrl] = useState("")
   const [model, setModel] = useState("")
-  const [imagePreset, setImagePreset] = useState(IMAGE_OFF)
+  const isPowerPoint = useConnectionStore(selectHostApp) === "powerpoint"
+  const [imageEnabled, setImageEnabled] = useState(false)
+  const [imageAdvancedOpen, setImageAdvancedOpen] = useState(false)
+  const [imagePreset, setImagePreset] = useState(IMAGE_AUTO)
   const [imageModel, setImageModel] = useState("")
   const [imageBaseUrl, setImageBaseUrl] = useState("")
   const [imageApiKey, setImageApiKey] = useState("")
@@ -232,7 +243,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
   const applyImagePreset = (id: string): void => {
     setImagePreset(id)
     const preset = IMAGE_PRESETS.find((p) => p.id === id)
-    if (!preset) return // off/custom: keep whatever is in the boxes
+    if (!preset) return // auto/custom: keep whatever is in the boxes
     setImageBaseUrl(preset.baseUrl)
     // Prefill the suggested model unless the user typed a custom one.
     if (
@@ -249,18 +260,32 @@ export const ConnectionSheet = memo(function ConnectionSheet({
   const imageNeedsKey =
     imagePreset === IMAGE_CUSTOM || (imagePresetDef?.needsKey ?? false)
 
+  const imageAutoMissing =
+    imageEnabled && imagePreset === IMAGE_AUTO && !AUTO_IMAGE_PRESETS.has(presetId)
+
   const imagePayload = (): {
-    imageModel: string
-    imageBaseUrl: string
-    imageApiKey: string
-    imageProvider: string
+    imageEnabled?: boolean
+    imageModel?: string
+    imageBaseUrl?: string
+    imageApiKey?: string
+    imageProvider?: string
   } => {
-    if (imagePreset === IMAGE_OFF) {
-      return { imageModel: "", imageBaseUrl: "", imageApiKey: "", imageProvider: "" }
+    // Only PowerPoint shows the section; elsewhere leave the settings untouched.
+    if (!isPowerPoint) return {}
+    if (!imageEnabled) return { imageEnabled: false }
+    if (imagePreset === IMAGE_AUTO) {
+      return {
+        imageEnabled: true,
+        imageModel: "",
+        imageBaseUrl: "",
+        imageApiKey: "",
+        imageProvider: "",
+      }
     }
     const editable =
       imagePreset === IMAGE_CUSTOM || (imagePresetDef?.editableUrl ?? false)
     return {
+      imageEnabled: true,
       imageModel: imageNeedsModel ? imageModel.trim() : "",
       imageBaseUrl: editable ? imageBaseUrl.trim() : (imagePresetDef?.baseUrl ?? ""),
       imageApiKey: imageApiKey.trim(),
@@ -332,6 +357,8 @@ export const ConnectionSheet = memo(function ConnectionSheet({
         setApiKey(settings.apiKey)
         setBaseUrl(settings.baseUrl)
         setModel(settings.model)
+        setImageEnabled(settings.imageEnabled ?? false)
+        setImageAdvancedOpen(false)
         setImagePreset(inferImagePreset(settings))
         setImageModel(settings.imageModel ?? "")
         setImageBaseUrl(settings.imageBaseUrl ?? "")
@@ -640,79 +667,107 @@ export const ConnectionSheet = memo(function ConnectionSheet({
           </div>
           )}
 
-          {/* 5. Image generation (optional) — powers the generate_image tool. */}
-          {showModel && (
+          {/* 5. Image generation — PowerPoint only: one switch, overrides under Advanced. */}
+          {showModel && isPowerPoint && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="provider-image-preset" className="text-xs">
-                {t("settings.image")}{" "}
-                <span className="text-muted-foreground">{t("settings.image.optional")}</span>
-              </Label>
-              <Select
-                value={imagePreset}
-                onValueChange={applyImagePreset}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="provider-image-preset" className="h-8 w-full text-xs">
-                  <SelectValue placeholder={t("settings.image.placeholder")} />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectItem value={IMAGE_OFF} className="text-xs">
-                    {t("settings.image.off")}
-                  </SelectItem>
-                  {IMAGE_PRESETS.map((p) => (
-                    <SelectItem key={p.id} value={p.id} className="text-xs">
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value={IMAGE_CUSTOM} className="text-xs">
-                    {t("settings.image.custom")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              {imagePreset !== IMAGE_OFF && imageNeedsModel && (
-                <Input
-                  id="provider-image-model"
-                  value={imageModel}
-                  onChange={(e) => setImageModel(e.target.value)}
-                  placeholder={imagePresetDef?.model ?? t("settings.image.modelPlaceholder")}
-                  spellCheck={false}
-                  autoComplete="off"
+              <div className="flex items-center justify-between">
+                <Label htmlFor="provider-image-enabled" className="text-xs">
+                  {t("settings.image")}
+                </Label>
+                <Switch
+                  id="provider-image-enabled"
+                  size="sm"
+                  checked={imageEnabled}
+                  onCheckedChange={setImageEnabled}
                   disabled={isLoading}
-                  className="h-8 text-xs"
                 />
+              </div>
+
+              {imageAutoMissing && (
+                <p className="m-0 text-[0.625rem] leading-snug text-amber-500 dark:text-amber-400">
+                  {t("settings.image.noAuto")}
+                </p>
               )}
 
-              {imagePreset !== IMAGE_OFF && imageNeedsKey && (
-                <PasswordInput
-                  id="provider-image-api-key"
-                  value={imageApiKey}
-                  onChange={(e) => setImageApiKey(e.target.value)}
-                  placeholder={t("settings.image.apiKeyPlaceholder")}
-                  spellCheck={false}
-                  autoComplete="off"
-                  disabled={isLoading}
-                  className="h-8 text-xs"
-                />
-              )}
+              {imageEnabled && (
+                <Collapsible
+                  open={imageAdvancedOpen || imageAutoMissing}
+                  onOpenChange={setImageAdvancedOpen}
+                >
+                  <CollapsibleTrigger className="group flex items-center gap-1 text-[0.625rem] text-muted-foreground hover:text-foreground">
+                    <ChevronRight className="size-3 transition-transform group-data-[state=open]:rotate-90" />
+                    {t("settings.image.advanced")}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="flex flex-col gap-1.5 pt-1.5">
+                    <Select
+                      value={imagePreset}
+                      onValueChange={applyImagePreset}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger id="provider-image-preset" className="h-8 w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent position="popper">
+                        <SelectItem value={IMAGE_AUTO} className="text-xs">
+                          {t("settings.image.auto")}
+                        </SelectItem>
+                        {IMAGE_PRESETS.map((p) => (
+                          <SelectItem key={p.id} value={p.id} className="text-xs">
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value={IMAGE_CUSTOM} className="text-xs">
+                          {t("settings.image.custom")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
 
-              {imagePreset !== IMAGE_OFF &&
-                (imagePreset === IMAGE_CUSTOM || imagePresetDef?.editableUrl) && (
-                  <Input
-                    id="provider-image-base-url"
-                    value={imageBaseUrl}
-                    onChange={(e) => setImageBaseUrl(e.target.value)}
-                    placeholder={
-                      imagePreset === IMAGE_CUSTOM
-                        ? t("settings.image.baseUrlPlaceholder")
-                        : imagePresetDef?.baseUrl
-                    }
-                    spellCheck={false}
-                    autoComplete="off"
-                    disabled={isLoading}
-                    className="h-8 text-xs"
-                  />
-                )}
+                    {imagePreset !== IMAGE_AUTO && imageNeedsModel && (
+                      <Input
+                        id="provider-image-model"
+                        value={imageModel}
+                        onChange={(e) => setImageModel(e.target.value)}
+                        placeholder={imagePresetDef?.model ?? t("settings.image.modelPlaceholder")}
+                        spellCheck={false}
+                        autoComplete="off"
+                        disabled={isLoading}
+                        className="h-8 text-xs"
+                      />
+                    )}
+
+                    {imagePreset !== IMAGE_AUTO && imageNeedsKey && (
+                      <PasswordInput
+                        id="provider-image-api-key"
+                        value={imageApiKey}
+                        onChange={(e) => setImageApiKey(e.target.value)}
+                        placeholder={t("settings.image.apiKeyPlaceholder")}
+                        spellCheck={false}
+                        autoComplete="off"
+                        disabled={isLoading}
+                        className="h-8 text-xs"
+                      />
+                    )}
+
+                    {imagePreset !== IMAGE_AUTO &&
+                      (imagePreset === IMAGE_CUSTOM || imagePresetDef?.editableUrl) && (
+                        <Input
+                          id="provider-image-base-url"
+                          value={imageBaseUrl}
+                          onChange={(e) => setImageBaseUrl(e.target.value)}
+                          placeholder={
+                            imagePreset === IMAGE_CUSTOM
+                              ? t("settings.image.baseUrlPlaceholder")
+                              : imagePresetDef?.baseUrl
+                          }
+                          spellCheck={false}
+                          autoComplete="off"
+                          disabled={isLoading}
+                          className="h-8 text-xs"
+                        />
+                      )}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
           )}
 

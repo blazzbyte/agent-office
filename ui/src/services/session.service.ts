@@ -59,6 +59,7 @@ export async function saveProviderSettings(patch: {
   contextWindow?: number
   maxTokens?: number
   maxSteps?: number
+  imageEnabled?: boolean
   imageModel?: string
   imageBaseUrl?: string
   imageApiKey?: string
