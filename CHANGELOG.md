@@ -5,6 +5,22 @@ All notable changes to **Agent Office** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning: [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Image generation is a single switch in Settings, shown in PowerPoint. The
+  image model is derived from the chat provider (OpenAI, OpenRouter, Google
+  Gemini) and reuses its API key; a different model, key or endpoint lives
+  under Advanced.
+- `generate_image` is offered only in PowerPoint, the one app that can place
+  pictures.
+
+### Removed
+
+- `search_image` (Openverse photo search) and the automatic attribution in
+  speaker notes.
+
 ## [1.1.0] - 2026-10-31
 
 ### Added
