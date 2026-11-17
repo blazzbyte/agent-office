@@ -254,3 +254,38 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
   const parsed = sessionDeletedResponseSchema.safeParse(data)
   return parsed.success ? parsed.data.deleted : false
 }
+
+// ---------------------------------------------------------------------------
+// Tool approval
+// ---------------------------------------------------------------------------
+
+export type ApprovalDecision = "approve" | "approve_all" | "reject"
+
+/** Answer a pending tool approval; false when the call is no longer waiting. */
+export async function sendToolApproval(
+  sessionId: string,
+  callId: string,
+  decision: ApprovalDecision,
+): Promise<boolean> {
+  const { ok } = await apiClient(`/api/sessions/${sessionId}/approval`, {
+    method: "POST",
+    body: { call_id: callId, decision },
+  })
+  if (!ok) logger.warn("sendToolApproval: request failed", { decision })
+  return ok
+}
+
+/** Whether the agent asks before each change to the document. */
+export async function getConfirmChanges(): Promise<boolean> {
+  const { data, ok } = await apiClient<{ ui?: { confirmChanges?: boolean } }>("/api/settings/ui")
+  return ok && data?.ui?.confirmChanges === true
+}
+
+export async function saveConfirmChanges(value: boolean): Promise<boolean> {
+  const { ok } = await apiClient("/api/settings/ui", {
+    method: "PUT",
+    body: { confirmChanges: value },
+  })
+  if (!ok) logger.warn("saveConfirmChanges: request failed")
+  return ok
+}

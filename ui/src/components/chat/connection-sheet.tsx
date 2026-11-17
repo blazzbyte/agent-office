@@ -41,8 +41,10 @@ import { useConnection } from "@/hooks/use-connection"
 import { useUiStore, selectRenderStyle } from "@/store/ui.store"
 import { useConnectionStore, selectHostApp } from "@/store/connection.store"
 import {
+  getConfirmChanges,
   getProviderModels,
   getProviderSettings,
+  saveConfirmChanges,
   saveProviderSettings,
 } from "@/services/session.service"
 import { logger } from "@/lib/utils/logger"
@@ -207,6 +209,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
   const [baseUrl, setBaseUrl] = useState("")
   const [model, setModel] = useState("")
   const isPowerPoint = useConnectionStore(selectHostApp) === "powerpoint"
+  const [confirmChanges, setConfirmChanges] = useState(false)
   const [imageEnabled, setImageEnabled] = useState(false)
   const [imageAdvancedOpen, setImageAdvancedOpen] = useState(false)
   const [imagePreset, setImagePreset] = useState(IMAGE_AUTO)
@@ -351,6 +354,7 @@ export const ConnectionSheet = memo(function ConnectionSheet({
     setSaveError(null)
     setSearch("")
     setIsLoading(true)
+    void getConfirmChanges().then(setConfirmChanges)
     void getProviderSettings()
       .then((settings) => {
         if (!settings) return
@@ -789,6 +793,24 @@ export const ConnectionSheet = memo(function ConnectionSheet({
 
           {/* Display preference — purely local to this taskpane */}
           <div className="mt-2 flex flex-col gap-1.5 border-t border-border pt-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="confirm-changes" className="text-xs">
+                {t("settings.confirmChanges")}
+              </Label>
+              <Switch
+                id="confirm-changes"
+                size="sm"
+                checked={confirmChanges}
+                onCheckedChange={(value) => {
+                  setConfirmChanges(value)
+                  void saveConfirmChanges(value)
+                }}
+              />
+            </div>
+            <p className="m-0 mb-2 text-[0.625rem] leading-snug text-muted-foreground">
+              {t("settings.confirmChanges.hint")}
+            </p>
+
             <Label className="text-xs">{t("settings.display")}</Label>
             <div
               className="flex rounded-lg border border-input bg-muted p-0.5"

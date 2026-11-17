@@ -17,6 +17,7 @@ import { useConnection } from "@/hooks/use-connection"
 import { useBridge } from "@/hooks/use-bridge"
 import { useSession } from "@/hooks/use-session"
 import type { MessageAttachment } from "@/types/chat"
+import { ApprovalCard } from "@/components/chat/approval-card"
 import { useT } from "@/i18n"
 
 // Distance (px) from the bottom that still counts as "at the bottom"
@@ -232,6 +233,7 @@ export function ChatSection(): React.JSX.Element {
 
       {/* Input */}
       <div className="shrink-0 border-t bg-background">
+        <ApprovalCard />
         <ChatInput
           ref={inputRef}
           isLoading={isLoading}
