@@ -37,10 +37,23 @@ namespace AgentOffice.Agent
             get { return GetString("model"); }
         }
 
-/// <summary>Optional image-generation model id for the generate_image tool.</summary>
+/// <summary>Image model id: the explicit one, else the default for the chat provider.</summary>
         public static string ImageModel
         {
-            get { return GetString("imageModel"); }
+            get { return GetString("imageModel") ?? ImageDefaults.Model(BaseUrl); }
+        }
+
+/// <summary>Whether image generation is on; without an explicit flag, an explicit image model or URL turns it on.</summary>
+        public static bool ImageEnabled
+        {
+            get
+            {
+                var block = ReadBlock();
+                object raw;
+                if (block != null && block.TryGetValue("imageEnabled", out raw) && raw is bool)
+                    return (bool)raw;
+                return GetString("imageModel") != null || GetString("imageBaseUrl") != null;
+            }
         }
 
 /// <summary>Wire shape for image calls (settings.json "imageProvider").</summary>
@@ -54,7 +67,7 @@ namespace AgentOffice.Agent
             get
             {
                 var url = GetString("imageBaseUrl");
-                return string.IsNullOrEmpty(url) ? BaseUrl : url.TrimEnd('/');
+                return string.IsNullOrEmpty(url) ? ImageDefaults.BaseUrl(BaseUrl) : url.TrimEnd('/');
             }
         }
 
@@ -72,6 +85,7 @@ namespace AgentOffice.Agent
         {
             get
             {
+                if (!ImageEnabled) return false;
                 if (ImageGeneration.ResolveProvider() == "a1111")
                 {
                     // Chat BaseUrl fallback would point txt2img at an LLM
@@ -120,7 +134,7 @@ namespace AgentOffice.Agent
             string apiKey, string baseUrl, string model,
             int? contextWindow, int? maxTokens, int? maxSteps,
             string imageModel = null, string imageBaseUrl = null, string imageApiKey = null,
-            string imageProvider = null)
+            string imageProvider = null, bool? imageEnabled = null)
         {
             Taskpane.HostSettings.SaveMutate(root =>
             {
@@ -155,6 +169,7 @@ namespace AgentOffice.Agent
                 if (imageBaseUrl != null) provider["imageBaseUrl"] = imageBaseUrl.Trim();
                 if (imageApiKey != null) provider["imageApiKey"] = Protect(imageApiKey.Trim());
                 if (imageProvider != null) provider["imageProvider"] = imageProvider.Trim();
+                if (imageEnabled.HasValue) provider["imageEnabled"] = imageEnabled.Value;
             });
         }
 
@@ -169,7 +184,8 @@ namespace AgentOffice.Agent
                 ["contextWindow"] = ContextWindow,
                 ["maxTokens"] = MaxTokens,
                 ["maxSteps"] = MaxSteps,
-                ["imageModel"] = ImageModel ?? string.Empty,
+                ["imageEnabled"] = ImageEnabled,
+                ["imageModel"] = GetString("imageModel") ?? string.Empty,
                 ["imageBaseUrl"] = GetString("imageBaseUrl") ?? string.Empty,
                 ["imageApiKey"] = GetSecret("imageApiKey") ?? string.Empty,
                 ["imageProvider"] = ImageGeneration.ResolveProvider(),

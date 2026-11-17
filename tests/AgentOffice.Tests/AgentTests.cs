@@ -28,6 +28,20 @@ namespace AgentOffice.Tests
             Program.True("ArrayList passes through", ReferenceEquals(list, JsonCompat.ToArrayList(list)));
             Program.Equal("array is wrapped", 3, JsonCompat.ToArrayList(new object[] { 1, 2, 3 }).Count);
             Program.Equal("other shapes rejected", null, JsonCompat.ToArrayList("x"));
+
+            Program.Equal("OpenAI image model", "gpt-image-1",
+                ImageDefaults.Model("https://api.openai.com/v1"));
+            Program.Equal("OpenRouter image model", "google/gemini-2.5-flash-image",
+                ImageDefaults.Model("https://openrouter.ai/api/v1"));
+            Program.Equal("Gemini image model", "gemini-2.5-flash-image",
+                ImageDefaults.Model("https://generativelanguage.googleapis.com/v1beta/openai"));
+            Program.Equal("unknown provider has no image model", null,
+                ImageDefaults.Model("https://api.deepseek.com/v1"));
+            Program.Equal("Gemini image endpoint drops the compat path",
+                "https://generativelanguage.googleapis.com/v1beta",
+                ImageDefaults.BaseUrl("https://generativelanguage.googleapis.com/v1beta/openai/"));
+            Program.Equal("other endpoints are kept", "https://api.openai.com/v1",
+                ImageDefaults.BaseUrl("https://api.openai.com/v1/"));
         }
     }
 }

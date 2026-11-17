@@ -26,6 +26,7 @@
     <Compile Include="..\..\src\Bridge\Math\CfHtml.cs" Link="Src\CfHtml.cs" />
     <Compile Include="..\..\src\Agent\SseEmitter.cs" Link="Src\SseEmitter.cs" />
     <Compile Include="..\..\src\Agent\JsonCompat.cs" Link="Src\JsonCompat.cs" />
+    <Compile Include="..\..\src\Agent\ImageDefaults.cs" Link="Src\ImageDefaults.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="LatexConverterTests.cs" />
     <Compile Include="OmmlTests.cs" />

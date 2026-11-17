@@ -46,13 +46,7 @@ namespace AgentOffice.Agent.Tools
                     "INVALID_PARAMS");
             }
 
-            // search_image / generate_image: host-side tools — they call web
-            // APIs and feed the session buffer; never reach the app bridge.
-            if (call.Name == "search_image")
-            {
-                return await ExecuteSearchImageAsync(call, args, session, ct)
-                    .ConfigureAwait(false);
-            }
+            // Host-side tool: feeds the session image buffer, never reaches the app bridge.
             if (call.Name == "generate_image")
             {
                 return await ExecuteGenerateImageAsync(call, args, session, ct)
@@ -81,104 +75,6 @@ namespace AgentOffice.Agent.Tools
             }
         }
 
-/// <summary>Search_image execution.</summary>
-        private static async Task<Dictionary<string, object>> ExecuteSearchImageAsync(
-            LlmToolCall call, Dictionary<string, object> args, AgentSession session,
-            System.Threading.CancellationToken ct)
-        {
-            object queryRaw;
-            var query = args.TryGetValue("query", out queryRaw) ? queryRaw as string : null;
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return ErrorPayload(call, "Missing required param 'query'", "INVALID_PARAMS");
-            }
-            object countRaw;
-            var count = 1;
-            if (args.TryGetValue("count", out countRaw) && countRaw is int)
-                count = Math.Max(1, Math.Min(3, (int)countRaw));
-
-            List<ImageSearch.Hit> hits;
-            try
-            {
-                hits = await ImageSearch.SearchAsync(query, count, ct).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) { throw; }
-            catch (Exception ex)
-            {
-                return ErrorPayload(call, "Image search failed: " + ex.Message, "PROVIDER_ERROR");
-            }
-            if (hits.Count == 0)
-            {
-                return ErrorPayload(call,
-                    "No images found for \"" + query + "\" — try a broader query.",
-                    "NOT_FOUND");
-            }
-
-            // Download each hit into the buffer; a failed download skips that
-            // hit (the others still land).
-            var downloaded = new List<KeyValuePair<ImageSearch.Hit, string>>();
-            foreach (var hit in hits)
-            {
-                try
-                {
-                    var dataUrl = await ImageSearch.DownloadAsDataUrlAsync(hit, ct)
-                        .ConfigureAwait(false);
-                    downloaded.Add(new KeyValuePair<ImageSearch.Hit, string>(hit, dataUrl));
-                }
-                catch (OperationCanceledException) { throw; }
-                catch (Exception ex)
-                {
-                    Bridge.Log.Error("search_image: download failed for " + hit.Url, ex);
-                }
-            }
-            if (downloaded.Count == 0)
-            {
-                return ErrorPayload(call,
-                    "Found " + hits.Count + " image(s) but every download failed — " +
-                    "try another query.", "PROVIDER_ERROR");
-            }
-
-            var sb = new StringBuilder();
-            sb.Append("Downloaded ").Append(downloaded.Count).Append(" image(s) for \"")
-              .Append(query).Append("\" (newest = source \"last\"):");
-            if (session != null)
-            {
-                lock (session.Sync)
-                {
-                    foreach (var pair in downloaded)
-                    {
-                        session.GeneratedImages.Add(new AgentSession.GeneratedImage
-                        {
-                            DataUrl = pair.Value,
-                            Attribution = pair.Key.AttributionText(),
-                        });
-                        while (session.GeneratedImages.Count > AgentSession.MaxGeneratedImages)
-                            session.GeneratedImages.RemoveAt(0);
-                    }
-                }
-            }
-            foreach (var pair in downloaded)
-            {
-                var hit = pair.Key;
-                sb.Append("\n- ").Append(hit.AttributionText());
-                if (hit.Width > 0 && hit.Height > 0)
-                    sb.Append(" [").Append(hit.Width).Append("x").Append(hit.Height).Append("]");
-            }
-            sb.Append("\nAttribution is added to the slide's speaker notes automatically on insert.");
-
-            return new Dictionary<string, object>
-            {
-                ["id"] = call.Id,
-                ["status"] = "ok",
-                ["summary"] = sb.ToString(),
-                ["data"] = new Dictionary<string, object>
-                {
-                    ["image"] = downloaded[downloaded.Count - 1].Value,
-                    ["count"] = downloaded.Count,
-                },
-            };
-        }
-
 /// <summary>Generate_image execution.</summary>
         private static async Task<Dictionary<string, object>> ExecuteGenerateImageAsync(
             LlmToolCall call, Dictionary<string, object> args, AgentSession session,
@@ -187,8 +83,7 @@ namespace AgentOffice.Agent.Tools
             if (!ProviderSettings.ImageConfigured)
             {
                 return ErrorPayload(call,
-                    "No image provider configured — set one in Connection settings " +
-                    "(Image generation section) or settings.json (imageModel/imageProvider).",
+                    "Image generation is off or has no model — turn it on in Settings.",
                     "NOT_CONFIGURED");
             }
 
@@ -217,8 +112,7 @@ namespace AgentOffice.Agent.Tools
             {
                 return ErrorPayload(call,
                     "The image provider (" + ImageGeneration.ResolveProvider() +
-                    ") returned no images — check the model/endpoint in " +
-                    "Connection settings › Image generation.",
+                    ") returned no images — check the image model in Settings.",
                     "NO_IMAGE");
             }
 
@@ -266,7 +160,6 @@ namespace AgentOffice.Agent.Tools
             }
 
             string dataUrl = null;
-            string attribution = null;
             lock (session.Sync)
             {
                 var count = session.GeneratedImages.Count;
@@ -280,9 +173,7 @@ namespace AgentOffice.Agent.Tools
                     if (int.TryParse(source, out parsed) && parsed >= 1) recency = parsed;
                     if (recency <= count)
                     {
-                        var entry = session.GeneratedImages[count - recency];
-                        dataUrl = entry.DataUrl;
-                        attribution = entry.Attribution;
+                        dataUrl = session.GeneratedImages[count - recency].DataUrl;
                     }
                 }
             }
@@ -290,13 +181,11 @@ namespace AgentOffice.Agent.Tools
             if (dataUrl == null)
             {
                 return ErrorPayload(call,
-                    "No image available in this session — search_image or generate_image " +
-                    "first, or pass an explicit file 'path'.",
+                    "No image available in this session — generate one first, " +
+                    "or pass an explicit file 'path'.",
                     "NO_IMAGE");
             }
             args["imageData"] = dataUrl;
-            if (!string.IsNullOrEmpty(attribution))
-                args["imageAttribution"] = attribution;
             return null;
         }
 
@@ -419,51 +308,9 @@ namespace AgentOffice.Agent.Tools
             else
                 baseList = _powerPointDefinitions ?? (_powerPointDefinitions = BuildPowerPoint());
 
-            // search_image is always available (zero config); generate_image
-            // only when an image model is configured.
-            var withImage = new ArrayList(baseList);
-            withImage.Add(SearchImageDefinition());
-            if (ProviderSettings.ImageConfigured)
-                withImage.Add(GenerateImageDefinition());
-            return withImage;
-        }
-
-/// <summary>Search_image — zero-config Openverse search, always available in every app.</summary>
-        private static Dictionary<string, object> SearchImageDefinition()
-        {
-            var function = new Dictionary<string, object>
-            {
-                ["name"] = "search_image",
-                ["description"] =
-                    "Search the web for a real, commercially-licensed photo (Openverse, " +
-                    "no config needed) and download it into the session. Prefer this over " +
-                    "generate_image for realistic photos/backgrounds; use generate_image " +
-                    "for custom art. Then place it with insert_picture (source \"last\"). " +
-                    "Attribution is added to speaker notes automatically.",
-                ["parameters"] = new Dictionary<string, object>
-                {
-                    ["type"] = "object",
-                    ["properties"] = new Dictionary<string, object>
-                    {
-                        ["query"] = new Dictionary<string, object>
-                        {
-                            ["type"] = "string",
-                            ["description"] = "What to search for (e.g. \"solar panels sunset aerial\")",
-                        },
-                        ["count"] = new Dictionary<string, object>
-                        {
-                            ["type"] = "number",
-                            ["description"] = "How many images to download, 1-3 (default: 1)",
-                        },
-                    },
-                    ["required"] = new ArrayList { "query" },
-                },
-            };
-            return new Dictionary<string, object>
-            {
-                ["type"] = "function",
-                ["function"] = function,
-            };
+            // Only PowerPoint can place pictures.
+            if (app != HostApp.PowerPoint || !ProviderSettings.ImageConfigured) return baseList;
+            return new ArrayList(baseList) { GenerateImageDefinition() };
         }
 
 /// <summary>Generate_image — the text model orchestrates, the configured image model draws.</summary>

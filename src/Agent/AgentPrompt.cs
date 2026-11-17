@@ -93,7 +93,7 @@ namespace AgentOffice.Agent
 - Slide numbers shift as you add or delete slides — after such an edit, re-orient with read_presentation_snapshot before targeting slides by number.
 - Positions and sizes are in points (1/72 inch); the snapshot reports the slide size so you can place things sensibly.
 - Design matters: apply_theme (list_themes first) gives the deck a professional look instantly — prefer it over default-white slides.
-- Images: search_image finds real, commercially-licensed photos (no config needed — prefer it for realistic backgrounds); generate_image creates custom art when an image model is configured. Both land in the session — place them with insert_picture (source ""last""); asBackground makes one the slide's background fill (great for title slides). CC attribution goes to speaker notes automatically.
+- Images: when generate_image is available it creates custom art; the result lands in the session — place it with insert_picture (source ""last""); asBackground makes it the slide's background fill (great for title slides). insert_picture also accepts a file path.
 - The deck is live and shared with the user: be careful with destructive operations (delete_slide). Never destroy content silently; confirm irreversible actions with the user first.
 - If a tool reports PowerPoint is busy (a dialog may be open), wait and retry the same call.
 
