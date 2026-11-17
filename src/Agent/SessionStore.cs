@@ -74,11 +74,10 @@ namespace AgentOffice.Agent
 /// <summary>True while a chat stream runs on this session (one at a time).</summary>
         public bool RunActive;
 
-/// <summary>Images the model generated or found during runs (data URLs), newest last, rolling-capped.</summary>
+/// <summary>Images the model generated during runs (data URLs), newest last, rolling-capped.</summary>
         public sealed class GeneratedImage
         {
             public string DataUrl;
-            public string Attribution; // null for model-generated images
         }
 
         public readonly List<GeneratedImage> GeneratedImages = new List<GeneratedImage>();

@@ -385,7 +385,6 @@ namespace AgentOffice.Bridge.PowerPoint
                 // Slide-local background (not the master): picture fill.
                 slide.FollowMasterBackground = Office.MsoTriState.msoFalse;
                 slide.Background.Fill.UserPicture(path);
-                AppendAttributionToNotes(slide, Protocol.GetString(req.Params, "imageAttribution"));
                 return Protocol.Ok(req.Id,
                     "Set the picture as slide " + slide.SlideIndex + "'s background");
             }
@@ -405,8 +404,6 @@ namespace AgentOffice.Bridge.PowerPoint
                 Office.MsoTriState.msoFalse,  // LinkToFile: embed a copy
                 Office.MsoTriState.msoTrue,   // SaveWithDocument
                 left, top, width, height);
-
-            AppendAttributionToNotes(slide, Protocol.GetString(req.Params, "imageAttribution"));
 
             return Protocol.Ok(req.Id,
                 "Inserted picture on slide " + slide.SlideIndex +
@@ -502,32 +499,6 @@ namespace AgentOffice.Bridge.PowerPoint
             foreach (var dir in candidates)
             {
                 if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir)) yield return dir;
-            }
-        }
-
-/// <summary>CC attribution for searched images: appended to the slide's speaker notes (never overwriting existing notes).</summary>
-        private static void AppendAttributionToNotes(Interop.Slide slide, string attribution)
-        {
-            if (string.IsNullOrWhiteSpace(attribution)) return;
-            try
-            {
-                foreach (Interop.Shape shape in slide.NotesPage.Shapes)
-                {
-                    if (shape.Type == Office.MsoShapeType.msoPlaceholder &&
-                        shape.PlaceholderFormat.Type == Interop.PpPlaceholderType.ppPlaceholderBody)
-                    {
-                        var range = shape.TextFrame.TextRange;
-                        var existing = range.Text ?? string.Empty;
-                        range.Text = existing.Trim().Length > 0
-                            ? existing.TrimEnd('\r') + "\r" + attribution
-                            : attribution;
-                        return;
-                    }
-                }
-            }
-            catch
-            {
-                // Attribution is best-effort — never fail the insert over it.
             }
         }
 

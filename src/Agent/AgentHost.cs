@@ -394,7 +394,8 @@ namespace AgentOffice.Agent
                 GetStringOrNull(parsed, "imageModel"),
                 GetStringOrNull(parsed, "imageBaseUrl"),
                 GetStringOrNull(parsed, "imageApiKey"),
-                GetStringOrNull(parsed, "imageProvider"));
+                GetStringOrNull(parsed, "imageProvider"),
+                GetBoolOrNull(parsed, "imageEnabled"));
 
             Bridge.Log.Info("Provider settings updated (model: " +
                 (ProviderSettings.Model ?? "<none>") + ", baseUrl: " +
@@ -596,6 +597,13 @@ namespace AgentOffice.Agent
             if (!dict.TryGetValue(key, out raw) || raw == null) return null;
             if (raw is int) return (int)raw;
             if (raw is long) return (int)(long)raw;
+            return null;
+        }
+
+        private static bool? GetBoolOrNull(Dictionary<string, object> dict, string key)
+        {
+            object raw;
+            if (dict.TryGetValue(key, out raw) && raw is bool) return (bool)raw;
             return null;
         }
 

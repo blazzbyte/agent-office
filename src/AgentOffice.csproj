@@ -187,8 +187,8 @@
     <Compile Include="Bridge\Math\CfHtml.cs" />
     <Compile Include="Agent\AgentHost.cs" />
     <Compile Include="Agent\AgentPrompt.cs" />
+    <Compile Include="Agent\ImageDefaults.cs" />
     <Compile Include="Agent\ImageGeneration.cs" />
-    <Compile Include="Agent\ImageSearch.cs" />
     <Compile Include="AppContext.cs" />
     <Compile Include="Bridge\Word\WordActions.cs" />
     <Compile Include="Bridge\Word\WordActionRouter.cs" />
