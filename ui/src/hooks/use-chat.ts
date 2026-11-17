@@ -155,6 +155,13 @@ export function useChat() {
             }
             completeToolProgress(tool_name, preview)
           },
+          onToolApprovalRequested: ({ call_id, tool_name, args }) => {
+            useChatStore.getState().setPendingApproval({
+              callId: call_id,
+              toolName: tool_name,
+              args,
+            })
+          },
           onAssistantCompleted: (payload) => {
             settleAssistantBubble(payload.content, payload.reasoning_content ?? undefined, payload.images)
             // Footer metrics: the LAST step's token footprint vs the model's

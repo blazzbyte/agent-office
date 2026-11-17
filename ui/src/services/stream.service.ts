@@ -10,6 +10,7 @@ import type {
   SseMessageStarted,
   SseRunCompleted,
   SseRunStarted,
+  SseToolApprovalRequested,
   SseToolCompleted,
   SseToolProgress,
   SseToolStarted,
@@ -27,6 +28,7 @@ const RECOGNISED_EVENTS = new Set<SseEventKey>([
   "tool.started",
   "tool.progress",
   "tool.completed",
+  "tool.approval_requested",
   "assistant.completed",
   "run.completed",
   "error",
@@ -79,6 +81,9 @@ function dispatchSseEvent(
       break
     case "tool.completed":
       callbacks.onToolCompleted?.(payload as SseToolCompleted)
+      break
+    case "tool.approval_requested":
+      callbacks.onToolApprovalRequested?.(payload as SseToolApprovalRequested)
       break
     case "assistant.completed":
       callbacks.onAssistantCompleted?.(payload as SseAssistantCompleted)

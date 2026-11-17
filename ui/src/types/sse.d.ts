@@ -57,6 +57,14 @@ export interface SseToolCompleted extends SseBasePayload {
   args?: unknown
 }
 
+/** A tool call that modifies the document is waiting for the user's decision. */
+export interface SseToolApprovalRequested extends SseBasePayload {
+  message_id: string
+  tool_name: string
+  call_id: string
+  args?: unknown
+}
+
 /** The assistant has produced its full response for this turn. */
 export interface SseAssistantCompleted extends SseBasePayload {
   message_id: string
@@ -122,6 +130,7 @@ export interface SseCallbacks {
   onToolStarted?: (event: SseToolStarted) => void
   onToolProgress?: (event: SseToolProgress) => void
   onToolCompleted?: (event: SseToolCompleted) => void
+  onToolApprovalRequested?: (event: SseToolApprovalRequested) => void
   onAssistantCompleted?: (event: SseAssistantCompleted) => void
   onRunCompleted?: (event: SseRunCompleted) => void
   onError?: (event: SseError) => void

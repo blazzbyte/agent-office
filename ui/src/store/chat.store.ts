@@ -19,6 +19,13 @@ export interface ToolProgress {
   delta: string
 }
 
+/** A tool call waiting for the user to allow or deny it. */
+export interface PendingApproval {
+  callId: string
+  toolName: string
+  args: unknown
+}
+
 // ---------------------------------------------------------------------------
 // State shape
 // ---------------------------------------------------------------------------
@@ -30,6 +37,7 @@ interface ChatState {
   /** ID of the assistant message currently being streamed. */
   streamingMessageId: string | null
   toolProgress: ToolProgress | null
+  pendingApproval: PendingApproval | null
   contextUsage: { tokens: number; window: number } | null
   sessionCost: number | null
 
@@ -60,6 +68,7 @@ interface ChatState {
   updateToolProgress: (toolName: string, delta: string) => void
   completeToolProgress: (toolName: string, preview?: string | null) => void
   clearToolProgress: () => void
+  setPendingApproval: (approval: PendingApproval | null) => void
   /** Reconcile live messages with canonical server messages on run completed. */
   reconcileTurnMessages: (turnMessages: AgentSessionMessage[]) => void
 
@@ -83,6 +92,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoading: false,
   streamingMessageId: null,
   toolProgress: null,
+  pendingApproval: null,
   contextUsage: null,
   sessionCost: null,
 
@@ -92,6 +102,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({
       activeSessionId: sessionId,
       toolProgress: null,
+      pendingApproval: null,
     }),
 
   clearSession: () =>
@@ -101,6 +112,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       isLoading: false,
       streamingMessageId: null,
       toolProgress: null,
+      pendingApproval: null,
       contextUsage: null,
       sessionCost: null,
     }),
@@ -369,7 +381,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // ------- Loading -------
 
-  setLoading: (loading) => set({ isLoading: loading }),
+  setPendingApproval: (approval) => set({ pendingApproval: approval }),
+
+  // A request cannot outlive its run.
+  setLoading: (loading) =>
+    set(loading ? { isLoading: true } : { isLoading: false, pendingApproval: null }),
 
   // ------- Persistence -------
 
@@ -429,3 +445,5 @@ export const selectToolProgress = (s: ChatState) => s.toolProgress
 export const selectStreamingMessageId = (s: ChatState) => s.streamingMessageId
 export const selectContextUsage = (s: ChatState) => s.contextUsage
 export const selectSessionCost = (s: ChatState) => s.sessionCost
+
+export const selectPendingApproval = (s: ChatState) => s.pendingApproval

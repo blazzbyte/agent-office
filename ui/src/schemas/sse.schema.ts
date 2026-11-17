@@ -52,6 +52,13 @@ export const sseToolCompletedSchema = baseSsePayload.extend({
   args: z.unknown().optional(),
 })
 
+export const sseToolApprovalRequestedSchema = baseSsePayload.extend({
+  message_id: z.string(),
+  tool_name: z.string(),
+  call_id: z.string(),
+  args: z.unknown().optional(),
+})
+
 export const sseUsageSchema = z.object({
   input_tokens: z.number().optional(),
   output_tokens: z.number().optional(),
@@ -112,6 +119,7 @@ export const sseEventSchemas = {
   "tool.started": sseToolStartedSchema,
   "tool.progress": sseToolProgressSchema,
   "tool.completed": sseToolCompletedSchema,
+  "tool.approval_requested": sseToolApprovalRequestedSchema,
   "assistant.completed": sseAssistantCompletedSchema,
   "run.completed": sseRunCompletedSchema,
   error: sseErrorSchema,
