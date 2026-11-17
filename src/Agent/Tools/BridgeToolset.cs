@@ -414,7 +414,7 @@ namespace AgentOffice.Agent.Tools
                     P("rows", "number", "Row count (max 50)"),
                     P("cols", "number", "Column count (max 10)"),
                     P("slide", "number", "Slide number, 1-based (default: the current slide)"),
-                    P("data", "array", "Optional 2D array of cell values (array of row arrays)"),
+                    PRows("data", "Optional 2D array of cell values, one inner array per row, e.g. [[\"Name\",\"Qty\"],[\"Apple\",3]]"),
                     P("headerRow", "boolean", "Bold the first row (default: false)"),
                     P("left", "number", "Left edge in points (default: centered)"),
                     P("top", "number", "Top edge in points (default: ~35% down)"),
@@ -502,7 +502,7 @@ namespace AgentOffice.Agent.Tools
                     P("rows", "number", "Row count (max 100)"),
                     P("cols", "number", "Column count (max 20)"),
                     P("position", "string", "Where to insert: \"end\" (default) or \"selection\""),
-                    P("data", "array", "Optional 2D array of cell values (array of row arrays)"),
+                    PRows("data", "Optional 2D array of cell values, one inner array per row, e.g. [[\"Name\",\"Qty\"],[\"Apple\",3]]"),
                     P("headerRow", "boolean", "Bold the first row (default: false)")),
                 Required("rows", "cols"));
             Add(list, "export_pdf",
@@ -542,7 +542,7 @@ namespace AgentOffice.Agent.Tools
                 Props(
                     P("sheet", "string", "Worksheet name (default: active sheet)"),
                     P("range", "string", "Target range, e.g. \"B2:E5\""),
-                    P("values", "array", "2D array of row arrays with values to write")),
+                    PRows("values", "2D array of values, one inner array per row, e.g. [[\"Name\",\"Qty\"],[\"Apple\",3]]; a single cell is [[\"text\"]]")),
                 Required("range", "values"));
             Add(list, "write_formula",
                 "Set a formula in a single cell.",
@@ -590,7 +590,7 @@ namespace AgentOffice.Agent.Tools
                 Props(
                     P("sheet", "string", "Worksheet name (default: active sheet)"),
                     P("tableName", "string", "Target table"),
-                    P("values", "array", "2D array of row arrays to append")),
+                    PRows("values", "2D array of rows to append, one inner array per row, e.g. [[\"Apple\",3]]")),
                 Required("tableName", "values"));
             Add(list, "sort_table",
                 "Sort a table by one column.",
@@ -681,10 +681,14 @@ namespace AgentOffice.Agent.Tools
                     P("destSheet", "string", "Destination sheet (optional)"),
                     P("destCell", "string", "Destination top-left cell (default \"A3\")"),
                     P("name", "string", "PivotTable name (optional)"),
-                    P("rows", "array", "Row field names"),
-                    P("columns", "array", "Column field names"),
-                    P("values", "array", "Value fields: [{field, function?}] with function sum|count|countnums|average|max|min|product|stdev|stdevp|var|varp (default sum)"),
-                    P("filters", "array", "Filter field names")),
+                    PStrings("rows", "Row field names"),
+                    PStrings("columns", "Column field names"),
+                    PObjects("values", "Value fields: [{field, function?}] with function sum|count|countnums|average|max|min|product|stdev|stdevp|var|varp (default sum)",
+                        Props(
+                            P("field", "string", "Source field name"),
+                            P("function", "string", "Aggregation (default: sum)")),
+                        Required("field")),
+                    PStrings("filters", "Filter field names")),
                 Required("sourceRange"));
             Add(list, "capture_range",
                 "Capture a screenshot of cells as a PNG you can SEE (formatting, drawn shapes, embedded images). Default mode covers values plus drawn shapes capped at maxRows×maxCols (80×30); or pass an explicit range, or selection:true. Capture generously — drawn entities extend further than values. Uses the clipboard once.",
@@ -709,9 +713,24 @@ namespace AgentOffice.Agent.Tools
                 Props(
                     P("sheet", "string", "Worksheet name (default: active sheet)"),
                     P("chart", "string", "Chart name or 1-based index"),
-                    P("seriesTypes", "array", "Per-series type: [{series, type}] with type line|lineMarkers|column|bar|area|pie|scatter"),
-                    P("secondaryAxis", "array", "Series to move to the secondary axis"),
-                    P("trendlines", "array", "[{series, type, order?, period?, forward?, backward?, displayEquation?, displayRSquared?, name?}] with type linear|exponential|logarithmic|polynomial|power|movingAverage")),
+                    PObjects("seriesTypes", "Per-series type: [{series, type}] with type line|lineMarkers|column|bar|area|pie|scatter",
+                        Props(
+                            PAny("series", "Series name or 1-based index", "string", "number"),
+                            P("type", "string", "Chart type for the series")),
+                        Required("series", "type")),
+                    PStrings("secondaryAxis", "Series to move to the secondary axis"),
+                    PObjects("trendlines", "[{series, type, order?, period?, forward?, backward?, displayEquation?, displayRSquared?, name?}] with type linear|exponential|logarithmic|polynomial|power|movingAverage",
+                        Props(
+                            PAny("series", "Series name or 1-based index", "string", "number"),
+                            P("type", "string", "Trendline type"),
+                            P("order", "number", "Polynomial order"),
+                            P("period", "number", "Moving-average period"),
+                            P("forward", "number", "Periods to forecast forward"),
+                            P("backward", "number", "Periods to forecast backward"),
+                            P("displayEquation", "boolean", "Show the equation on the chart"),
+                            P("displayRSquared", "boolean", "Show R squared on the chart"),
+                            P("name", "string", "Trendline name")),
+                        Required("series", "type"))),
                 NoRequired());
             Add(list, "create_slicer",
                 "Add a REAL slicer filtering a table column (default) or a PivotTable field. Default placement: on the source sheet, one column right of the source range.",
@@ -732,7 +751,7 @@ namespace AgentOffice.Agent.Tools
                 Props(
                     P("sheet", "string", "Worksheet name (default: active sheet)"),
                     P("password", "string", "Protection password (optional)"),
-                    P("allow", "array", "Allowances: formatCells|formatColumns|formatRows|insertColumns|insertRows|insertHyperlinks|deleteColumns|deleteRows|sort|autofilter|pivottables"),
+                    PStrings("allow", "Allowances: formatCells|formatColumns|formatRows|insertColumns|insertRows|insertHyperlinks|deleteColumns|deleteRows|sort|autofilter|pivottables"),
                     P("unprotect", "boolean", "Set true to remove protection")),
                 NoRequired());
             Add(list, "protect_workbook",
@@ -809,6 +828,74 @@ namespace AgentOffice.Agent.Tools
                     ["description"] = description,
                 },
             };
+        }
+
+/// <summary>A property that accepts any of the given primitive types.</summary>
+        private static Dictionary<string, object> PAny(
+            string name, string description, params string[] types)
+        {
+            return new Dictionary<string, object>
+            {
+                [name] = new Dictionary<string, object>
+                {
+                    ["anyOf"] = AnyOf(types),
+                    ["description"] = description,
+                },
+            };
+        }
+
+/// <summary>An array property with an explicit item schema; without one, grammar-constrained models can only emit an empty array.</summary>
+        private static Dictionary<string, object> PArray(
+            string name, string description, Dictionary<string, object> items)
+        {
+            return new Dictionary<string, object>
+            {
+                [name] = new Dictionary<string, object>
+                {
+                    ["type"] = "array",
+                    ["description"] = description,
+                    ["items"] = items,
+                },
+            };
+        }
+
+        private static Dictionary<string, object> PStrings(string name, string description)
+        {
+            return PArray(name, description,
+                new Dictionary<string, object> { ["type"] = "string" });
+        }
+
+/// <summary>A 2D array property: rows of cell values (text, number or boolean).</summary>
+        private static Dictionary<string, object> PRows(string name, string description)
+        {
+            return PArray(name, description, new Dictionary<string, object>
+            {
+                ["type"] = "array",
+                ["items"] = new Dictionary<string, object>
+                {
+                    ["anyOf"] = AnyOf("string", "number", "boolean"),
+                },
+            });
+        }
+
+        private static Dictionary<string, object> PObjects(
+            string name, string description,
+            Dictionary<string, object> properties, ArrayList required)
+        {
+            return PArray(name, description, new Dictionary<string, object>
+            {
+                ["type"] = "object",
+                ["properties"] = properties,
+                ["required"] = required,
+            });
+        }
+
+        private static ArrayList AnyOf(params string[] types)
+        {
+            var list = new ArrayList();
+            foreach (var type in types)
+                list.Add(new Dictionary<string, object> { ["type"] = type });
+            return list;
         }
 
         private static ArrayList Required(params string[] names)

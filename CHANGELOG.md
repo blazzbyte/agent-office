@@ -21,6 +21,12 @@ versioning: [Semantic Versioning](https://semver.org/).
 - `search_image` (Openverse photo search) and the automatic attribution in
   speaker notes.
 
+### Fixed
+
+- Array tool parameters now declare their item types. Models that follow the
+  schema strictly could only send an empty array, so calls such as
+  `write_range` failed with "values (must be a non-empty 2D array)".
+
 ## [1.1.0] - 2026-10-31
 
 ### Added
